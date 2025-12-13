@@ -10,6 +10,11 @@ nodes:
     type: CONSTANT
     value: 500
 
+  driver_factor:
+    type: LOOKUP
+    table: driver_age_factor
+    key: driver_age
+
   technical_premium:
     type: MULTIPLY
     inputs:
@@ -25,4 +30,3 @@ nodes:
     inputs:
       - technical_premium
       - fee
-
