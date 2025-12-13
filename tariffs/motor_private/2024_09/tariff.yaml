@@ -7,34 +7,26 @@ parameters:
 
 nodes:
   base_premium:
-    type: LOOKUP
-    table: base_premium
-    key: vehicle_power
+    type: CONSTANT
+    value: 500
 
   driver_factor:
-    type: LOOKUP
-    table: driver_age_factor
-    key: driver_age
-
-  young_driver_factor:
-    type: IF
-    condition: driver_age < 25
-    then: ${young_driver_loading}
-    else: 1.0
+    type: CONSTANT
+    value: 1.25
 
   technical_premium:
     type: MULTIPLY
     inputs:
       - base_premium
       - driver_factor
-      - young_driver_factor
 
-  policy_fee:
+  fee:
     type: CONSTANT
-    value: 25.00
+    value: 25
 
   total_premium:
     type: ADD
     inputs:
       - technical_premium
-      - policy_fee
+      - fee
+
