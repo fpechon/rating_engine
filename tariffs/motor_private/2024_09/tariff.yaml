@@ -2,9 +2,6 @@ product: MOTOR_PRIVATE
 version: 2024_09
 currency: EUR
 
-parameters:
-  young_driver_loading: 1.25
-
 nodes:
   base_premium:
     type: CONSTANT
@@ -15,10 +12,10 @@ nodes:
     table: driver_age_factor
     key: driver_age
 
-  young_driver_factor:
+  density_factor:
     type: IF
-    condition: driver_age < 25
-    then: 1.25
+    condition: density > 1000
+    then: 1.20
     else: 1.00
 
   technical_premium:
@@ -26,7 +23,7 @@ nodes:
     inputs:
       - base_premium
       - driver_factor
-      - young_driver_factor
+      - density_factor
 
   fee:
     type: CONSTANT
