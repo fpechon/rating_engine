@@ -41,17 +41,18 @@ class ContextNode(Node):
 
 
 class LookupNode(Node):
-    def __init__(self, name: str, mapping: dict, key: str):
+    def __init__(self, name, table, key):
         super().__init__(name)
-        self.mapping = mapping
+        self.table = table  # RangeTable
         self.key = key
 
     def dependencies(self):
         return []
 
     def evaluate(self, context, cache):
-        k = context[self.key]
-        return Decimal(self.mapping[k])
+        value = context[self.key]
+        return self.table.lookup(value)
+
 
 class AddNode(Node):
     def __init__(self, name: str, inputs: list[Node]):

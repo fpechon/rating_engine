@@ -1,6 +1,6 @@
 import yaml
 from decimal import Decimal
-from engine.nodes import ConstantNode, AddNode, MultiplyNode, ContextNode
+from engine.nodes import ConstantNode, AddNode, MultiplyNode, ContextNode, LookupNode
 
 
 def resolve_node(name, nodes):
@@ -11,8 +11,10 @@ def resolve_node(name, nodes):
     return node
 
 
-
 class TariffLoader:
+    def __init__(self, tables=None):
+        self.tables = tables or {}
+
     def load(self, path: str):
         with open(path) as f:
             data = yaml.safe_load(f)
@@ -27,7 +29,7 @@ class TariffLoader:
             if node_type == "CONSTANT":
                 nodes[name] = ConstantNode(name=name, value=Decimal(str(spec["value"])))
 
-            elif node_type in ("ADD", "MULTIPLY"):
+            elif node_type in ("ADD", "MULTIPLY", "LOOKUP"):
                 # composite nodes wired later
                 nodes[name] = None
 
@@ -46,5 +48,10 @@ class TariffLoader:
                     nodes[name] = AddNode(name, inputs)
                 elif node_type == "MULTIPLY":
                     nodes[name] = MultiplyNode(name, inputs)
+            elif node_type == "LOOKUP":
+                table_name = spec["table"]
+                table = self.tables[table_name]
+                key = spec["key"]
+                nodes[name] = LookupNode(name=name, table=table, key=key)
 
         return nodes
