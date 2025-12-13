@@ -15,11 +15,18 @@ nodes:
     table: driver_age_factor
     key: driver_age
 
+  young_driver_factor:
+    type: IF
+    condition: driver_age < 25
+    then: 1.25
+    else: 1.00
+
   technical_premium:
     type: MULTIPLY
     inputs:
       - base_premium
       - driver_factor
+      - young_driver_factor
 
   fee:
     type: CONSTANT

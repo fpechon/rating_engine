@@ -1,5 +1,13 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal
+import operator
+
+OPS = {
+    "<": operator.lt,
+    "<=": operator.le,
+    ">": operator.gt,
+    ">=": operator.ge,
+}
 
 
 class Node(ABC):
@@ -82,16 +90,18 @@ class MultiplyNode(Node):
 
 
 class IfNode(Node):
-    def __init__(self, name, condition, then_node, else_node):
+    def __init__(self, name, var, op, threshold, then_val, else_val):
         super().__init__(name)
-        self.condition = condition  # callable(context) -> bool
-        self.then_node = then_node
-        self.else_node = else_node
+        self.var = var            # context variable name
+        self.op = op              # operator function
+        self.threshold = threshold  # Decimal
+        self.then_val = Decimal(str(then_val))
+        self.else_val = Decimal(str(else_val))
 
     def dependencies(self):
-        return [self.then_node.name, self.else_node.name]
+        return []  # leaf node
 
     def evaluate(self, context, cache):
-        if self.condition(context):
-            return cache[self.then_node.name]
-        return cache[self.else_node.name]
+        value = Decimal(str(context[self.var]))
+        return self.then_val if self.op(value, self.threshold) else self.else_val
+

@@ -1,6 +1,14 @@
 import yaml
 from decimal import Decimal
-from engine.nodes import ConstantNode, AddNode, MultiplyNode, ContextNode, LookupNode
+from engine.nodes import (
+    ConstantNode,
+    AddNode,
+    MultiplyNode,
+    ContextNode,
+    LookupNode,
+    IfNode,
+    OPS,
+)
 
 
 def resolve_node(name, nodes):
@@ -9,6 +17,14 @@ def resolve_node(name, nodes):
     node = ContextNode(name)
     nodes[name] = node  # add to nodes so graph can find it
     return node
+
+
+def parse_condition(expr: str):
+    for op_str, op_func in OPS.items():
+        if op_str in expr:
+            var, threshold = expr.split(op_str)
+            return var.strip(), op_func, Decimal(threshold.strip())
+    raise ValueError(f"Invalid condition: {expr}")
 
 
 class TariffLoader:
@@ -29,7 +45,7 @@ class TariffLoader:
             if node_type == "CONSTANT":
                 nodes[name] = ConstantNode(name=name, value=Decimal(str(spec["value"])))
 
-            elif node_type in ("ADD", "MULTIPLY", "LOOKUP"):
+            elif node_type in ("ADD", "MULTIPLY", "LOOKUP", "IF"):
                 # composite nodes wired later
                 nodes[name] = None
 
@@ -53,5 +69,17 @@ class TariffLoader:
                 table = self.tables[table_name]
                 key = spec["key"]
                 nodes[name] = LookupNode(name=name, table=table, key=key)
+
+            elif node_type == "IF":
+                var, op, threshold = parse_condition(spec["condition"])
+                nodes[name] = IfNode(
+                    name=name,
+                    var=var,
+                    op=op,
+                    threshold=threshold,
+                    then_val=spec["then"],
+                    else_val=spec["else"]
+    )
+
 
         return nodes
