@@ -10,10 +10,6 @@ nodes:
     type: CONSTANT
     value: 500
 
-  driver_factor:
-    type: CONSTANT
-    value: 1.25
-
   technical_premium:
     type: MULTIPLY
     inputs:

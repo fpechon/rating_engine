@@ -35,7 +35,9 @@ class ContextNode(Node):
         return []
 
     def evaluate(self, context, cache):
-        return Decimal(context[self.name])
+        if self.name not in context:
+            raise KeyError(f"Missing context variable: {self.name}")
+        return Decimal(str(context[self.name]))
 
 
 class LookupNode(Node):
@@ -60,10 +62,8 @@ class AddNode(Node):
         return [n.name for n in self.inputs]
 
     def evaluate(self, context, cache):
-        return sum(
-            (cache[n.name] for n in self.inputs),
-            start=Decimal("0")
-        )
+        return sum((cache[n.name] for n in self.inputs), start=Decimal("0"))
+
 
 class MultiplyNode(Node):
     def __init__(self, name: str, inputs: list[Node]):
