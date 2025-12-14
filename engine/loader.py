@@ -54,16 +54,33 @@ class TariffLoader:
                     raise ValueError(
                         f"{node_type} node '{name}' must have non-empty 'inputs' list"
                     )
-
+                
             elif node_type == "LOOKUP":
-                if "table" not in spec or "key" not in spec:
+                if "table" not in spec:
                     raise ValueError(
-                        f"LOOKUP node '{name}' must have 'table' and 'key'"
+                        f"LOOKUP node '{name}' must have a 'table'"
                     )
+
                 if spec["table"] not in self.tables:
                     raise ValueError(
                         f"LOOKUP node '{name}' references unknown table '{spec['table']}'"
                     )
+
+                has_key = "key" in spec
+                has_key_node = "key_node" in spec
+
+                if has_key == has_key_node:
+                    raise ValueError(
+                        f"LOOKUP node '{name}' must define exactly one of 'key' or 'key_node'"
+                    )
+
+                if has_key_node:
+                    key_node_name = spec["key_node"]
+                    if key_node_name not in nodes:
+                        raise ValueError(
+                            f"LOOKUP node '{name}' references unknown key_node '{key_node_name}'"
+                        )
+
 
             elif node_type == "IF":
                 for field in ("condition", "then", "else"):
@@ -119,8 +136,21 @@ class TariffLoader:
             elif node_type == "LOOKUP":
                 table_name = spec["table"]
                 table = self.tables[table_name]
-                key = spec["key"]
-                nodes[name] = LookupNode(name=name, table=table, key=key)
+
+                if "key" in spec:
+                    nodes[name] = LookupNode(
+                        name=name,
+                        table=table,
+                        key=spec["key"]
+                    )
+                else:
+                    key_node = resolve_node(spec["key_node"], nodes)
+                    nodes[name] = LookupNode(
+                        name=name,
+                        table=table,
+                        key_node=key_node
+                    )
+
 
             elif node_type == "IF":
                 var, op, threshold = parse_condition(spec["condition"])

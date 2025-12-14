@@ -1,5 +1,6 @@
 import csv
 from decimal import Decimal
+from typing import Type, Any
 
 
 class RangeTable:
@@ -13,7 +14,7 @@ class RangeTable:
         raise KeyError(f"No matching row for {value}")
 
 
-def load_range_table(path):
+def load_range_table(path: str):
     rows = []
     with open(path) as f:
         reader = csv.DictReader(f)
@@ -28,27 +29,37 @@ def load_range_table(path):
     return RangeTable(rows)
 
 
-
 class ExactMatchTable:
-    def __init__(self, mapping):
+    def __init__(
+        self,
+        mapping: dict,
+        key_type: Type[Any] = str,
+    ):
         """
         mapping: dict of {key -> value}
         value can be numeric (Decimal) or anything
         """
         self.mapping = mapping
+        self.key_type = key_type
 
     def lookup(self, key):
+        k = self.key_type(key)
         if key in self.mapping:
-            return self.mapping[key]
+            return self.mapping[k]
         raise KeyError(f"No matching row for {key}")
 
 
-def load_exact_table(path, key_column="key", value_column="value"):
+def load_exact_table(
+    path: str,
+    key_column: str = "key",
+    value_column: str = "value",
+    key_type: Type[Any] = str,
+):
     mapping = {}
     with open(path) as f:
         reader = csv.DictReader(f)
         for row in reader:
-            k = row[key_column]
-            v = Decimal(str(row[value_column]))  # convert to Decimal
+            k = key_type(row[key_column])
+            v = Decimal(str(row[value_column]))
             mapping[k] = v
-    return ExactMatchTable(mapping)
+    return ExactMatchTable(mapping, key_type=key_type)

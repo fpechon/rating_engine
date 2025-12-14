@@ -54,18 +54,26 @@ class ContextNode(Node):
 
 
 class LookupNode(Node):
-    def __init__(self, name, table, key, mode="range"):
+    def __init__(self, name, table, key=None, key_node=None):
         super().__init__(name)
-        self.table = table  # table can be numeric ranges or dict
+        self.table = table
         self.key = key
-        self.mode = mode
+        self.key_node = key_node
+
+        if (key is None) == (key_node is None):
+            raise ValueError("Provide exactly one of key or key_node")
 
     def dependencies(self):
+        if self.key_node:
+            return [self.key_node.name]
         return []
 
     def evaluate(self, context, cache):
+        if self.key_node:
+            value = cache[self.key_node.name]
+        else:
             value = context[self.key]
-            return self.table.lookup(value)
+        return self.table.lookup(value)
 
 
 class AddNode(Node):

@@ -19,6 +19,11 @@ nodes:
     key: brand
     mode: exact
 
+  vehicle_category_factor:
+    type: LOOKUP
+    table: vehicle_brand_coefs
+    key_node: vehicle_category
+    mode: exact
 
   density_factor:
     type: IF
@@ -32,7 +37,7 @@ nodes:
       - base_premium
       - driver_factor
       - density_factor
-      - vehicle_category
+      - vehicle_category_factor
 
   fee:
     type: CONSTANT
