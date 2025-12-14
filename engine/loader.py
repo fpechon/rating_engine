@@ -12,14 +12,6 @@ from engine.nodes import (
 )
 
 
-def resolve_node(name, nodes):
-    if name in nodes:
-        return nodes[name]
-    node = ContextNode(name)
-    nodes[name] = node  # add to nodes so graph can find it
-    return node
-
-
 def parse_condition(expr: str):
     # check longer operator symbols first (e.g. '<=' before '<')
     for op_str in sorted(OPS.keys(), key=len, reverse=True):
@@ -123,9 +115,13 @@ class TariffLoader:
                 elif dtype_str == "str":
                     dtype = str
                 else:
-                    raise ValueError(f"INPUT node '{name}' has unknown dtype '{dtype_str}'")
+                    raise ValueError(
+                        f"INPUT node '{name}' has unknown dtype '{dtype_str}'"
+                    )
 
-                nodes[name] = InputNode(name=name, dtype=dtype)  # new node type wrapping context
+                nodes[name] = InputNode(
+                    name=name, dtype=dtype
+                )  # new node type wrapping context
 
             elif node_type in ("ADD", "MULTIPLY", "LOOKUP", "IF", "ROUND"):
                 # composite nodes wired later
