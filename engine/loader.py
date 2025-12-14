@@ -4,10 +4,10 @@ from engine.nodes import (
     ConstantNode,
     AddNode,
     MultiplyNode,
-    ContextNode,
     LookupNode,
     IfNode,
     RoundNode,
+    InputNode,
     OPS,
 )
 
@@ -54,33 +54,25 @@ class TariffLoader:
                     raise ValueError(
                         f"{node_type} node '{name}' must have non-empty 'inputs' list"
                     )
-                
+
             elif node_type == "LOOKUP":
                 if "table" not in spec:
-                    raise ValueError(
-                        f"LOOKUP node '{name}' must have a 'table'"
-                    )
-
+                    raise ValueError(f"LOOKUP node '{name}' must have a 'table'")
                 if spec["table"] not in self.tables:
                     raise ValueError(
                         f"LOOKUP node '{name}' references unknown table '{spec['table']}'"
                     )
 
-                has_key = "key" in spec
-                has_key_node = "key_node" in spec
-
-                if has_key == has_key_node:
+                if "key_node" not in spec:
                     raise ValueError(
-                        f"LOOKUP node '{name}' must define exactly one of 'key' or 'key_node'"
+                        f"LOOKUP node '{name}' must define 'key_node' (no 'key' allowed)"
                     )
 
-                if has_key_node:
-                    key_node_name = spec["key_node"]
-                    if key_node_name not in nodes:
-                        raise ValueError(
-                            f"LOOKUP node '{name}' references unknown key_node '{key_node_name}'"
-                        )
-
+                key_node_name = spec["key_node"]
+                if key_node_name not in nodes:
+                    raise ValueError(
+                        f"LOOKUP node '{name}' references unknown key_node '{key_node_name}'"
+                    )
 
             elif node_type == "IF":
                 for field in ("condition", "then", "else"):
@@ -95,6 +87,15 @@ class TariffLoader:
                         f"ROUND node '{name}' has invalid mode '{spec['mode']}'"
                     )
 
+            elif node_type == "INPUT":
+                # leaf node wrapping a context variable, must have no extra fields
+                allowed_fields = {"type", "dtype"}
+                extra_fields = set(spec.keys()) - allowed_fields
+                if extra_fields:
+                    raise ValueError(
+                        f"INPUT node '{name}' should not have extra fields: {extra_fields}"
+                    )
+
             else:
                 raise ValueError(f"Unknown node type '{node_type}' in node '{name}'")
 
@@ -103,16 +104,27 @@ class TariffLoader:
             data = yaml.safe_load(f)
 
         self.validate(data)
-        
+
         node_defs = data["nodes"]
         nodes = {}
 
-        # First pass: create leaf nodes only (constants)
+        # First pass: create leaf nodes (CONSTANT or INPUT)
         for name, spec in node_defs.items():
             node_type = spec["type"]
 
             if node_type == "CONSTANT":
                 nodes[name] = ConstantNode(name=name, value=Decimal(str(spec["value"])))
+
+            elif node_type == "INPUT":
+                dtype_str = spec.get("dtype", "decimal").lower()
+                if dtype_str == "decimal":
+                    dtype = Decimal
+                elif dtype_str == "str":
+                    dtype = str
+                else:
+                    raise ValueError(f"INPUT node '{name}' has unknown dtype '{dtype_str}'")
+
+                nodes[name] = InputNode(name=name, dtype=dtype)  # new node type wrapping context
 
             elif node_type in ("ADD", "MULTIPLY", "LOOKUP", "IF", "ROUND"):
                 # composite nodes wired later
@@ -126,37 +138,31 @@ class TariffLoader:
             node_type = spec["type"]
 
             if node_type in ("ADD", "MULTIPLY"):
-                # resolve_node handles YAML nodes or context nodes
-                inputs = [resolve_node(i, nodes) for i in spec.get("inputs", [])]
+                # inputs must be nodes
+                inputs = [nodes[i] for i in spec.get("inputs", [])]
 
                 if node_type == "ADD":
                     nodes[name] = AddNode(name, inputs)
                 elif node_type == "MULTIPLY":
                     nodes[name] = MultiplyNode(name, inputs)
+
             elif node_type == "LOOKUP":
                 table_name = spec["table"]
                 table = self.tables[table_name]
 
-                if "key" in spec:
-                    nodes[name] = LookupNode(
-                        name=name,
-                        table=table,
-                        key=spec["key"]
-                    )
-                else:
-                    key_node = resolve_node(spec["key_node"], nodes)
-                    nodes[name] = LookupNode(
-                        name=name,
-                        table=table,
-                        key_node=key_node
-                    )
-
+                # always use key_node; context variables must be wrapped as INPUT nodes
+                key_node_name = spec["key_node"]
+                key_node = nodes[key_node_name]
+                nodes[name] = LookupNode(name=name, table=table, key_node=key_node)
 
             elif node_type == "IF":
+                # var must be an input node
                 var, op, threshold = parse_condition(spec["condition"])
+                var_node = nodes[var]
+
                 nodes[name] = IfNode(
                     name=name,
-                    var=var,
+                    var=var_node,
                     op=op,
                     threshold=threshold,
                     then_val=spec["then"],
@@ -165,7 +171,7 @@ class TariffLoader:
 
             elif node_type == "ROUND":
                 input_name = spec["input"]
-                input_node = resolve_node(input_name, nodes)
+                input_node = nodes[input_name]
 
                 decimals = spec.get("decimals", 2)
                 mode = spec.get("mode", "HALF_UP")

@@ -3,6 +3,18 @@ version: 2024_09
 currency: EUR
 
 nodes:
+  driver_age:
+    type: INPUT
+    dtype: decimal
+
+  brand:
+    type: INPUT
+    dtype: str
+
+  density:
+    type: INPUT
+    dtype: decimal
+
   base_premium:
     type: CONSTANT
     value: 500
@@ -10,13 +22,13 @@ nodes:
   driver_factor:
     type: LOOKUP
     table: driver_age_factor
-    key: driver_age
+    key_node: driver_age
     mode: range
 
   vehicle_category:
     type: LOOKUP
     table: vehicle_brand_category
-    key: brand
+    key_node: brand
     mode: exact
 
   vehicle_category_factor:
@@ -36,8 +48,8 @@ nodes:
     inputs:
       - base_premium
       - driver_factor
-      - density_factor
       - vehicle_category_factor
+      - density_factor
 
   fee:
     type: CONSTANT

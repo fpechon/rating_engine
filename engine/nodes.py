@@ -40,17 +40,29 @@ class ConstantNode(Node):
         return self.value
 
 
-class ContextNode(Node):
-    def __init__(self, name: str):
+class InputNode(Node):
+    """
+    Leaf node representing a value provided at evaluation time (from context).
+    All other nodes should depend only on nodes, never directly on context.
+    """
+    def __init__(self, name: str, dtype=Decimal):
         super().__init__(name)
+        self.dtype = dtype
 
     def dependencies(self):
         return []
 
     def evaluate(self, context, cache):
         if self.name not in context:
-            raise KeyError(f"Missing context variable: {self.name}")
-        return Decimal(str(context[self.name]))
+            raise KeyError(f"Missing input variable: {self.name}")
+        value = context[self.name]
+
+        if value is None:
+            return None
+
+        if self.dtype is Decimal:
+            return Decimal(str(value))
+        return value
 
 
 class LookupNode(Node):
@@ -106,18 +118,21 @@ class MultiplyNode(Node):
 class IfNode(Node):
     def __init__(self, name, var, op, threshold, then_val, else_val):
         super().__init__(name)
-        self.var = var  # context variable name
-        self.op = op  # operator function
-        self.threshold = threshold  # Decimal
+        self.var_node = var   # Node object
+        self.op = op               # operator function
+        self.threshold = Decimal(str(threshold))
         self.then_val = Decimal(str(then_val))
         self.else_val = Decimal(str(else_val))
 
     def dependencies(self):
-        return []  # leaf node
+        return [self.var_node.name]
 
     def evaluate(self, context, cache):
-        value = Decimal(str(context[self.var]))
+        value = cache[self.var_node.name]  # read from upstream node
+        if value is None:
+            raise ValueError(f"IF node '{self.name}' got None from '{self.var_node.name}'")
         return self.then_val if self.op(value, self.threshold) else self.else_val
+
 
 
 class RoundNode(Node):
