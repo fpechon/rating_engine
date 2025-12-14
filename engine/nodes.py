@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_EVEN
 import operator
 
 OPS = {
@@ -7,6 +7,11 @@ OPS = {
     "<=": operator.le,
     ">": operator.gt,
     ">=": operator.ge,
+}
+
+ROUNDING_MODES = {
+    "HALF_UP": ROUND_HALF_UP,
+    "HALF_EVEN": ROUND_HALF_EVEN,
 }
 
 
@@ -92,8 +97,8 @@ class MultiplyNode(Node):
 class IfNode(Node):
     def __init__(self, name, var, op, threshold, then_val, else_val):
         super().__init__(name)
-        self.var = var            # context variable name
-        self.op = op              # operator function
+        self.var = var  # context variable name
+        self.op = op  # operator function
         self.threshold = threshold  # Decimal
         self.then_val = Decimal(str(then_val))
         self.else_val = Decimal(str(else_val))
@@ -105,3 +110,18 @@ class IfNode(Node):
         value = Decimal(str(context[self.var]))
         return self.then_val if self.op(value, self.threshold) else self.else_val
 
+
+class RoundNode(Node):
+    def __init__(self, name, input_node, decimals, mode):
+        super().__init__(name)
+        self.input_node = input_node
+        self.decimals = int(decimals)
+        self.rounding = ROUNDING_MODES[mode]
+
+    def dependencies(self):
+        return [self.input_node.name]
+
+    def evaluate(self, context, cache):
+        value = cache[self.input_node.name]
+        quant = Decimal("1").scaleb(-self.decimals)
+        return value.quantize(quant, rounding=self.rounding)

@@ -7,6 +7,7 @@ from engine.nodes import (
     ContextNode,
     LookupNode,
     IfNode,
+    RoundNode,
     OPS,
 )
 
@@ -45,7 +46,7 @@ class TariffLoader:
             if node_type == "CONSTANT":
                 nodes[name] = ConstantNode(name=name, value=Decimal(str(spec["value"])))
 
-            elif node_type in ("ADD", "MULTIPLY", "LOOKUP", "IF"):
+            elif node_type in ("ADD", "MULTIPLY", "LOOKUP", "IF", "ROUND"):
                 # composite nodes wired later
                 nodes[name] = None
 
@@ -79,7 +80,20 @@ class TariffLoader:
                     threshold=threshold,
                     then_val=spec["then"],
                     else_val=spec["else"]
-    )
+                )
+                
+            elif node_type == "ROUND":
+                input_name = spec["input"]
+                input_node = resolve_node(input_name, nodes)
 
+                decimals = spec.get("decimals", 2)
+                mode = spec.get("mode", "HALF_UP")
+
+                nodes[name] = RoundNode(
+                    name=name,
+                    input_node=input_node,
+                    decimals=decimals,
+                    mode=mode,
+                )
 
         return nodes

@@ -29,8 +29,14 @@ nodes:
     type: CONSTANT
     value: 25
 
-  total_premium:
+  raw_total_premium:
     type: ADD
     inputs:
       - technical_premium
       - fee
+
+  total_premium:
+    type: ROUND
+    input: raw_total_premium
+    decimals: 2
+    mode: HALF_UP
