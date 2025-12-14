@@ -54,17 +54,18 @@ class ContextNode(Node):
 
 
 class LookupNode(Node):
-    def __init__(self, name, table, key):
+    def __init__(self, name, table, key, mode="range"):
         super().__init__(name)
-        self.table = table  # RangeTable
+        self.table = table  # table can be numeric ranges or dict
         self.key = key
+        self.mode = mode
 
     def dependencies(self):
         return []
 
     def evaluate(self, context, cache):
-        value = context[self.key]
-        return self.table.lookup(value)
+            value = context[self.key]
+            return self.table.lookup(value)
 
 
 class AddNode(Node):

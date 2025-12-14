@@ -11,6 +11,14 @@ nodes:
     type: LOOKUP
     table: driver_age_factor
     key: driver_age
+    mode: range
+
+  vehicle_category:
+    type: LOOKUP
+    table: vehicle_brand_category
+    key: brand
+    mode: exact
+
 
   density_factor:
     type: IF
@@ -24,6 +32,7 @@ nodes:
       - base_premium
       - driver_factor
       - density_factor
+      - vehicle_category
 
   fee:
     type: CONSTANT
