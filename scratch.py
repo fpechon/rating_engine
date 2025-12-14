@@ -37,12 +37,12 @@ nodes = loader.load("tariffs/motor_private/2024_09/tariff.yaml")
 graph = TariffGraph(nodes)
 
 context = {
-    "driver_age": None,
+    "driver_age": 42,
     "density": 1001,
     "brand": "BMW",
     "neighbourhood_id": "19582",
 }
-result = graph.evaluate("total_premium", context, trace={})
+result = graph.evaluate("total_premium", context, trace=None)
 result
 # %%
 dot = visualize_graph(graph)
@@ -51,11 +51,13 @@ dot
 
 # %%
 # Compute prices on a dataframe
-df = pd.DataFrame({"driver_age": range(18, 100), "density": 100, "brand": "Audi"})
+df = pd.DataFrame({"driver_age": range(18, 100), "density": 100, "brand": "Audi", "neighbourhood_id": "19582"})
 
 df["premium"] = price_dataframe(df, graph, "total_premium")
-price_with_breakdown(df, graph, "total_premium")
+df
 
+# %%
+price_with_breakdown(df, graph, "total_premium")
 # %%
 tariff_id = tariff_hash(
     "tariffs/motor_private/2024_09/tariff.yaml",
