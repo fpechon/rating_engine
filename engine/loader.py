@@ -162,7 +162,7 @@ class TariffLoader:
 
                 nodes[name] = IfNode(
                     name=name,
-                    var=var_node,
+                    var_node=var_node,
                     op=op,
                     threshold=threshold,
                     then_val=spec["then"],

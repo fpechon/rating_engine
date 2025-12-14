@@ -116,9 +116,9 @@ class MultiplyNode(Node):
 
 
 class IfNode(Node):
-    def __init__(self, name, var, op, threshold, then_val, else_val):
+    def __init__(self, name, var_node, op, threshold, then_val, else_val):
         super().__init__(name)
-        self.var_node = var   # Node object
+        self.var_node = var_node   # Node object
         self.op = op               # operator function
         self.threshold = Decimal(str(threshold))
         self.then_val = Decimal(str(then_val))
