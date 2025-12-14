@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "graphviz>=0.21",
     "pandas>=2.3.3",
     "pytest>=9.0.2",
     "pyyaml>=6.0.3",
