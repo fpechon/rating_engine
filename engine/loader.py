@@ -32,10 +32,61 @@ class TariffLoader:
     def __init__(self, tables=None):
         self.tables = tables or {}
 
+    def validate(self, data):
+        if "nodes" not in data:
+            raise ValueError("Tariff YAML must contain 'nodes'")
+
+        nodes = data["nodes"]
+
+        for name, spec in nodes.items():
+            if "type" not in spec:
+                raise ValueError(f"Node '{name}' missing 'type'")
+
+            node_type = spec["type"]
+
+            if node_type == "CONSTANT":
+                if "value" not in spec:
+                    raise ValueError(f"CONSTANT node '{name}' missing 'value'")
+
+            elif node_type in ("ADD", "MULTIPLY"):
+                inputs = spec.get("inputs")
+                if not isinstance(inputs, list) or len(inputs) == 0:
+                    raise ValueError(
+                        f"{node_type} node '{name}' must have non-empty 'inputs' list"
+                    )
+
+            elif node_type == "LOOKUP":
+                if "table" not in spec or "key" not in spec:
+                    raise ValueError(
+                        f"LOOKUP node '{name}' must have 'table' and 'key'"
+                    )
+                if spec["table"] not in self.tables:
+                    raise ValueError(
+                        f"LOOKUP node '{name}' references unknown table '{spec['table']}'"
+                    )
+
+            elif node_type == "IF":
+                for field in ("condition", "then", "else"):
+                    if field not in spec:
+                        raise ValueError(f"IF node '{name}' missing '{field}'")
+
+            elif node_type == "ROUND":
+                if "input" not in spec:
+                    raise ValueError(f"ROUND node '{name}' missing 'input'")
+                if "mode" in spec and spec["mode"] not in ("HALF_UP", "HALF_EVEN"):
+                    raise ValueError(
+                        f"ROUND node '{name}' has invalid mode '{spec['mode']}'"
+                    )
+
+            else:
+                raise ValueError(f"Unknown node type '{node_type}' in node '{name}'")
+
     def load(self, path: str):
         with open(path) as f:
             data = yaml.safe_load(f)
 
+        self.validate(data)
+        
         node_defs = data["nodes"]
         nodes = {}
 
@@ -79,9 +130,9 @@ class TariffLoader:
                     op=op,
                     threshold=threshold,
                     then_val=spec["then"],
-                    else_val=spec["else"]
+                    else_val=spec["else"],
                 )
-                
+
             elif node_type == "ROUND":
                 input_name = spec["input"]
                 input_node = resolve_node(input_name, nodes)
