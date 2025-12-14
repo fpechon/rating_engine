@@ -4,7 +4,7 @@ class TariffGraph:
     def __init__(self, nodes: dict[str, Node]):
         self.nodes = nodes
 
-    def evaluate(self, root: str, context: dict) -> dict:
+    def evaluate(self, root: str, context: dict, full=False):
         cache = {}
 
         def eval_node(name):
@@ -17,4 +17,4 @@ class TariffGraph:
             return cache[name]
 
         eval_node(root)
-        return cache
+        return cache if full else cache[root]
