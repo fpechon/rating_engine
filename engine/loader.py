@@ -21,10 +21,11 @@ def resolve_node(name, nodes):
 
 
 def parse_condition(expr: str):
-    for op_str, op_func in OPS.items():
+    # check longer operator symbols first (e.g. '<=' before '<')
+    for op_str in sorted(OPS.keys(), key=len, reverse=True):
         if op_str in expr:
             var, threshold = expr.split(op_str)
-            return var.strip(), op_func, Decimal(threshold.strip())
+            return var.strip(), op_str, Decimal(threshold.strip())
     raise ValueError(f"Invalid condition: {expr}")
 
 

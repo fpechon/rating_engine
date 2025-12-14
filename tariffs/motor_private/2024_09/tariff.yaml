@@ -17,7 +17,7 @@ nodes:
 
   neighbourhood_id:
     type: INPUT
-    dtype: decimal
+    dtype: str
 
   base_premium:
     type: CONSTANT
