@@ -16,7 +16,7 @@ def price_with_breakdown(df, graph, root):
 
     for _, row in df.iterrows():
         context = row.to_dict()
-        cache = graph.evaluate(root, context, full=True)
+        cache = graph.evaluate(root, context, trace={})
         rows.append(cache)
 
     return pd.DataFrame(rows)

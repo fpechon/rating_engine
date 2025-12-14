@@ -28,4 +28,4 @@ class TariffGraph:
             return val
 
         eval_node(root)
-        return cache if trace is None else trace
+        return cache[root] if trace is None else trace
