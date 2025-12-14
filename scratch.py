@@ -20,13 +20,28 @@ tables = {
     "vehicle_brand_coefs": load_exact_table(
         "tariffs/motor_private/2024_09/tables/vehicle_brand_coefs.csv", key_type=int
     ),
+    "zoning": load_exact_table(
+        "tariffs/motor_private/2024_09/tables/zoning.csv",
+        key_type=int,
+        key_column="neighbourhood_id",
+        value_column="zone",
+    ),
+    "zoning_coefs": load_exact_table(
+        "tariffs/motor_private/2024_09/tables/zoning_coefs.csv",
+        key_type=int,
+    ),
 }
 
 loader = TariffLoader(tables=tables)
 nodes = loader.load("tariffs/motor_private/2024_09/tariff.yaml")
 graph = TariffGraph(nodes)
 
-context = {"driver_age": None, "density": 1001, "brand": "BMW"}
+context = {
+    "driver_age": None,
+    "density": 1001,
+    "brand": "BMW",
+    "neighbourhood_id": 19582,
+}
 result = graph.evaluate("total_premium", context, trace={})
 result
 # %%

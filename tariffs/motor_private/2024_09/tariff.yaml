@@ -15,6 +15,10 @@ nodes:
     type: INPUT
     dtype: decimal
 
+  neighbourhood_id:
+    type: INPUT
+    dtype: decimal
+
   base_premium:
     type: CONSTANT
     value: 500
@@ -24,6 +28,18 @@ nodes:
     table: driver_age_factor
     key_node: driver_age
     mode: range
+
+  zoning_factor:
+    type: LOOKUP
+    table: zoning
+    key_node: neighbourhood_id
+    mode: exact
+
+  zoning_coef:
+    type: LOOKUP
+    table: zoning_coefs
+    key_node: zoning_factor
+    mode: exact
 
   vehicle_category:
     type: LOOKUP
@@ -50,6 +66,7 @@ nodes:
       - driver_factor
       - vehicle_category_factor
       - density_factor
+      - zoning_coef
 
   fee:
     type: CONSTANT
