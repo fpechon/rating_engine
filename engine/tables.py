@@ -4,17 +4,24 @@ from typing import Type, Any
 
 
 class RangeTable:
-    def __init__(self, rows):
+    def __init__(self, rows, default=None):
         self.rows = rows
+        self.default = default
 
     def lookup(self, value):
+        if value is None:
+            if self.default is not None:
+                return self.default
+            raise KeyError("Missing value and no default defined")
+
         for r in self.rows:
             if r["min"] <= value <= r["max"]:
                 return r["value"]
-        raise KeyError(f"No matching row for {value}")
+
+        raise KeyError(f"Value {value} outside all ranges")
 
 
-def load_range_table(path: str):
+def load_range_table(path: str, default=None):
     rows = []
     with open(path) as f:
         reader = csv.DictReader(f)
@@ -26,7 +33,7 @@ def load_range_table(path: str):
                     "value": Decimal(str(r["value"])),
                 }
             )
-    return RangeTable(rows)
+    return RangeTable(rows, default)
 
 
 class ExactMatchTable:
@@ -44,8 +51,10 @@ class ExactMatchTable:
 
     def lookup(self, key):
         k = self.key_type(key)
-        if key in self.mapping:
+        if k in self.mapping:
             return self.mapping[k]
+        if "__DEFAULT__" in self.mapping:
+            return self.mapping["__DEFAULT__"]
         raise KeyError(f"No matching row for {key}")
 
 
