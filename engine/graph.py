@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from engine.nodes import Node
+from engine.profiler import PerformanceProfiler
 from engine.validation import EvaluationError
 
 
@@ -30,6 +31,7 @@ class TariffGraph:
         context: Dict[str, Any],
         trace: Optional[Dict] = None,
         node_path: Optional[List[str]] = None,
+        profiler: Optional[PerformanceProfiler] = None,
     ):
         """
         Évalue le graphe à partir d'un nœud racine.
@@ -47,6 +49,8 @@ class TariffGraph:
             node_path: ⚠️ Paramètre interne uniquement, ne pas utiliser directement.
                       Utilisé en interne pour tracer le chemin de dépendances lors d'erreurs.
                       Exemple de chemin: ['total_premium', 'raw_total', 'technical_premium']
+            profiler: PerformanceProfiler optionnel pour collecter des statistiques de
+                     performance (temps d'évaluation, cache hits/misses par nœud)
 
         Returns:
             - Si trace is None: La valeur calculée du nœud racine (Decimal)
@@ -108,7 +112,12 @@ class TariffGraph:
             En cas d'erreur, on voit le chemin complet de dépendances.
             """
             if name in cache:
+                if profiler:
+                    profiler.record_cache_hit(name)
                 return cache[name]
+
+            if profiler:
+                profiler.record_cache_miss(name)
 
             if name not in self.nodes:
                 raise EvaluationError(
@@ -139,8 +148,14 @@ class TariffGraph:
 
             # Évaluer le nœud lui-même
             try:
+                if profiler:
+                    profiler.start_node(name)
                 val = node.evaluate(context, cache)
+                if profiler:
+                    profiler.end_node(name)
             except Exception as e:
+                if profiler:
+                    profiler.end_node(name)
                 if not isinstance(e, EvaluationError):
                     raise EvaluationError(
                         f"Error evaluating node '{name}': {str(e)}",

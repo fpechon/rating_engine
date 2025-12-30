@@ -12,8 +12,6 @@ def node_color(node):
         return "orange"
     if node.__class__.__name__ == "RoundNode":
         return "pink"
-    if node.__class__.__name__ == "ContextNode":
-        return "gray"
     return "white"
 
 

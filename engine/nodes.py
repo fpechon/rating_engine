@@ -570,7 +570,52 @@ class CoalesceNode(Node):
         return None
 
 
-class MinNode(ReduceNode):
+class MinMaxNode(Node):
+    """
+    Classe de base pour MinNode et MaxNode.
+
+    Partage la logique commune d'évaluation des nœuds min/max.
+    """
+
+    def __init__(self, name: str, inputs: list[Node], op):
+        """
+        Initialise un nœud min/max.
+
+        Args:
+            name: Nom du nœud
+            inputs: Liste des nœuds à comparer
+            op: Opération à appliquer (min ou max)
+        """
+        Node.__init__(self, name)
+        if not inputs:
+            raise ValueError(f"{self.__class__.__name__} requires at least one input")
+        self.inputs = inputs
+        self.op = op
+
+    def dependencies(self):
+        """Dépend de tous les nœuds d'entrée."""
+        return [n.name for n in self.inputs]
+
+    def evaluate(self, context, cache):
+        """
+        Retourne le min ou max des valeurs.
+
+        Returns:
+            None si tous les inputs sont None, sinon la valeur min/max
+        """
+        values = []
+        for node in self.inputs:
+            val = cache[node.name]
+            if val is not None:
+                values.append(val)
+
+        if not values:
+            return None
+
+        return self.op(values)
+
+
+class MinNode(MinMaxNode):
     """
     Nœud retournant le minimum de ses inputs.
 
@@ -589,37 +634,10 @@ class MinNode(ReduceNode):
             name: Nom du nœud
             inputs: Liste des nœuds à comparer
         """
-        # On ne peut pas utiliser le pattern ReduceNode standard car min() n'a pas d'identité simple
-        # On va override evaluate() directement
-        Node.__init__(self, name)
-        if not inputs:
-            raise ValueError("MinNode requires at least one input")
-        self.inputs = inputs
-
-    def dependencies(self):
-        """Dépend de tous les nœuds d'entrée."""
-        return [n.name for n in self.inputs]
-
-    def evaluate(self, context, cache):
-        """
-        Retourne le minimum des valeurs.
-
-        Returns:
-            None si tous les inputs sont None, sinon la valeur minimale
-        """
-        values = []
-        for node in self.inputs:
-            val = cache[node.name]
-            if val is not None:
-                values.append(val)
-
-        if not values:
-            return None
-
-        return min(values)
+        super().__init__(name, inputs, op=min)
 
 
-class MaxNode(ReduceNode):
+class MaxNode(MinMaxNode):
     """
     Nœud retournant le maximum de ses inputs.
 
@@ -638,32 +656,7 @@ class MaxNode(ReduceNode):
             name: Nom du nœud
             inputs: Liste des nœuds à comparer
         """
-        Node.__init__(self, name)
-        if not inputs:
-            raise ValueError("MaxNode requires at least one input")
-        self.inputs = inputs
-
-    def dependencies(self):
-        """Dépend de tous les nœuds d'entrée."""
-        return [n.name for n in self.inputs]
-
-    def evaluate(self, context, cache):
-        """
-        Retourne le maximum des valeurs.
-
-        Returns:
-            None si tous les inputs sont None, sinon la valeur maximale
-        """
-        values = []
-        for node in self.inputs:
-            val = cache[node.name]
-            if val is not None:
-                values.append(val)
-
-        if not values:
-            return None
-
-        return max(values)
+        super().__init__(name, inputs, op=max)
 
 
 class AbsNode(Node):
