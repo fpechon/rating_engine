@@ -44,3 +44,9 @@ htmlcov/
 # Generated visualization files
 *_tariff_*.html
 simple_example.html
+
+# Generated export files
+trace_example.json
+trace_example.csv
+batch_results.csv
+batch_with_errors.csv
