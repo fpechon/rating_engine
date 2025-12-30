@@ -15,16 +15,20 @@ Un moteur de tarification moderne pour l'assurance P&C (Property & Casualty), ba
 
 ```bash
 # Cloner le projet
-git clone <repo-url>
+git clone https://github.com/fpechon/rating_engine
 cd rating_engine
 
 # Installer avec uv (recommandé)
-uv venv
-source .venv/bin/activate  # ou .venv\Scripts\activate sur Windows
-uv pip install -e .
+uv sync
 
-# Ou avec pip
+# Ou avec pip classique
 pip install -e .
+```
+
+Ensuite, utilisez `uv run` pour exécuter les commandes Python:
+```bash
+uv run python examples/visualize_tariff.py
+uv run pytest
 ```
 
 ## 📖 Guide de démarrage - 5 minutes
@@ -173,7 +177,7 @@ Voir [Référence complète](docs/nodes_reference.md) pour tous les détails.
 
 ```bash
 # Générer une visualisation HTML interactive
-python examples/visualize_tariff.py
+uv run python examples/visualize_tariff.py
 
 # Ouvrir motor_tariff_evaluated.html dans un navigateur
 ```
@@ -314,12 +318,17 @@ rating_engine/
 
 ```bash
 # Installer les dépendances de dev
-uv pip install -e ".[dev]"
+uv sync --dev
+
+# Installer les pre-commit hooks
+uv run pre-commit install
 
 # Avant de committer
 uv run pytest                    # Tests
 uv run pytest --cov=engine      # Coverage
-# Formatting et linting à venir (Phase 3)
+uv run black --check engine tools    # Formatting
+uv run isort --check engine tools    # Import sorting
+uv run flake8 engine tools           # Linting
 ```
 
 ## 📈 Performance
