@@ -439,3 +439,271 @@ class RoundNode(Node):
             return None
         quant = Decimal("1").scaleb(-self.decimals)
         return value.quantize(quant, rounding=self.rounding)
+
+
+class SwitchNode(Node):
+    """
+    Nœud de branchement multiple (switch/case).
+
+    Alternative élégante aux IfNode imbriqués pour gérer plusieurs cas.
+    Évalue une variable d'entrée et retourne la valeur correspondant au cas
+    qui correspond, avec une valeur par défaut optionnelle.
+
+    Attributes:
+        var_node: Nœud fournissant la valeur à tester
+        cases: Dictionnaire {valeur_test -> valeur_retour}
+        default: Valeur par défaut si aucun cas ne correspond
+
+    Examples:
+        >>> region = InputNode("region", dtype=str)
+        >>> cases = {
+        ...     "Paris": Decimal("1.5"),
+        ...     "Lyon": Decimal("1.3"),
+        ...     "Marseille": Decimal("1.2"),
+        ... }
+        >>> factor = SwitchNode("region_factor", region, cases, Decimal("1.0"))
+        >>> # Si region == "Paris": retourne 1.5
+        >>> # Si region == "Lyon": retourne 1.3
+        >>> # Si region non reconnue: retourne 1.0 (default)
+    """
+
+    def __init__(self, name: str, var_node: Node, cases: dict, default=None):
+        """
+        Initialise un nœud switch.
+
+        Args:
+            name: Nom du nœud
+            var_node: Nœud fournissant la valeur à tester
+            cases: Dictionnaire {valeur_test -> valeur_retour}
+            default: Valeur par défaut si aucun cas ne correspond
+
+        Raises:
+            ValueError: Si cases est vide ou si var_node est None
+        """
+        super().__init__(name)
+        if var_node is None:
+            raise ValueError("SwitchNode requires a var_node")
+        if not cases:
+            raise ValueError("SwitchNode requires at least one case")
+        self.var_node = var_node
+        # Convertir les valeurs en Decimal si possible
+        self.cases = {k: to_decimal(v) if v is not None else None for k, v in cases.items()}
+        self.default = to_decimal(default) if default is not None else None
+
+    def dependencies(self):
+        """Dépend du nœud testé."""
+        return [self.var_node.name]
+
+    def evaluate(self, context, cache):
+        """
+        Évalue le switch et retourne la valeur du cas correspondant.
+
+        Raises:
+            ValueError: Si la valeur testée est None et qu'il n'y a pas de défaut
+            KeyError: Si aucun cas ne correspond et qu'il n'y a pas de défaut
+        """
+        value = cache[self.var_node.name]
+
+        if value in self.cases:
+            return self.cases[value]
+
+        if self.default is not None:
+            return self.default
+
+        raise KeyError(
+            f"Switch node '{self.name}': value '{value}' not found in cases "
+            f"and no default provided. Available cases: {list(self.cases.keys())}"
+        )
+
+
+class CoalesceNode(Node):
+    """
+    Nœud retournant la première valeur non-nulle parmi ses inputs.
+
+    Utile pour gérer des valeurs par défaut ou des fallbacks en cascade.
+
+    Attributes:
+        inputs: Liste des nœuds à évaluer dans l'ordre
+
+    Examples:
+        >>> optional_discount = InputNode("discount")
+        >>> default_discount = ConstantNode("default", Decimal("0"))
+        >>> final_discount = CoalesceNode("final_discount", [optional_discount, default_discount])
+        >>> # Si discount est fourni: utilise discount
+        >>> # Sinon: utilise 0
+    """
+
+    def __init__(self, name: str, inputs: list[Node]):
+        """
+        Initialise un nœud coalesce.
+
+        Args:
+            name: Nom du nœud
+            inputs: Liste des nœuds à évaluer (ordre prioritaire)
+
+        Raises:
+            ValueError: Si la liste d'inputs est vide
+        """
+        super().__init__(name)
+        if not inputs:
+            raise ValueError("CoalesceNode requires at least one input")
+        self.inputs = inputs
+
+    def dependencies(self):
+        """Dépend de tous les nœuds d'entrée."""
+        return [n.name for n in self.inputs]
+
+    def evaluate(self, context, cache):
+        """
+        Retourne la première valeur non-nulle.
+
+        Returns:
+            La première valeur non-None, ou None si toutes sont None
+        """
+        for node in self.inputs:
+            value = cache[node.name]
+            if value is not None:
+                return value
+        return None
+
+
+class MinNode(ReduceNode):
+    """
+    Nœud retournant le minimum de ses inputs.
+
+    Examples:
+        >>> price1 = ConstantNode("price1", Decimal("500"))
+        >>> price2 = ConstantNode("price2", Decimal("450"))
+        >>> best_price = MinNode("best_price", [price1, price2])
+        >>> # Résultat: 450
+    """
+
+    def __init__(self, name: str, inputs: list[Node]):
+        """
+        Initialise un nœud minimum.
+
+        Args:
+            name: Nom du nœud
+            inputs: Liste des nœuds à comparer
+        """
+        # On ne peut pas utiliser le pattern ReduceNode standard car min() n'a pas d'identité simple
+        # On va override evaluate() directement
+        Node.__init__(self, name)
+        if not inputs:
+            raise ValueError("MinNode requires at least one input")
+        self.inputs = inputs
+
+    def dependencies(self):
+        """Dépend de tous les nœuds d'entrée."""
+        return [n.name for n in self.inputs]
+
+    def evaluate(self, context, cache):
+        """
+        Retourne le minimum des valeurs.
+
+        Returns:
+            None si tous les inputs sont None, sinon la valeur minimale
+        """
+        values = []
+        for node in self.inputs:
+            val = cache[node.name]
+            if val is not None:
+                values.append(val)
+
+        if not values:
+            return None
+
+        return min(values)
+
+
+class MaxNode(ReduceNode):
+    """
+    Nœud retournant le maximum de ses inputs.
+
+    Examples:
+        >>> deductible1 = ConstantNode("deductible1", Decimal("100"))
+        >>> deductible2 = ConstantNode("deductible2", Decimal("200"))
+        >>> final_deductible = MaxNode("final_deductible", [deductible1, deductible2])
+        >>> # Résultat: 200
+    """
+
+    def __init__(self, name: str, inputs: list[Node]):
+        """
+        Initialise un nœud maximum.
+
+        Args:
+            name: Nom du nœud
+            inputs: Liste des nœuds à comparer
+        """
+        Node.__init__(self, name)
+        if not inputs:
+            raise ValueError("MaxNode requires at least one input")
+        self.inputs = inputs
+
+    def dependencies(self):
+        """Dépend de tous les nœuds d'entrée."""
+        return [n.name for n in self.inputs]
+
+    def evaluate(self, context, cache):
+        """
+        Retourne le maximum des valeurs.
+
+        Returns:
+            None si tous les inputs sont None, sinon la valeur maximale
+        """
+        values = []
+        for node in self.inputs:
+            val = cache[node.name]
+            if val is not None:
+                values.append(val)
+
+        if not values:
+            return None
+
+        return max(values)
+
+
+class AbsNode(Node):
+    """
+    Nœud retournant la valeur absolue de son input.
+
+    Attributes:
+        input_node: Nœud dont on veut la valeur absolue
+
+    Examples:
+        >>> diff = ConstantNode("diff", Decimal("-50"))
+        >>> abs_diff = AbsNode("abs_diff", diff)
+        >>> # Résultat: 50
+    """
+
+    def __init__(self, name: str, input_node: Node):
+        """
+        Initialise un nœud valeur absolue.
+
+        Args:
+            name: Nom du nœud
+            input_node: Nœud d'entrée
+
+        Raises:
+            ValueError: Si input_node est None
+        """
+        super().__init__(name)
+        if input_node is None:
+            raise ValueError("AbsNode requires an input_node")
+        self.input_node = input_node
+
+    def dependencies(self):
+        """Dépend du nœud d'entrée."""
+        return [self.input_node.name]
+
+    def evaluate(self, context, cache):
+        """
+        Retourne la valeur absolue.
+
+        Returns:
+            None si l'entrée est None, sinon abs(valeur)
+        """
+        value = cache[self.input_node.name]
+        if value is None:
+            return None
+        return abs(value)

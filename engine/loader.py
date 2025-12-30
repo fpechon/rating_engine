@@ -15,6 +15,11 @@ from engine.nodes import (
     IfNode,
     RoundNode,
     InputNode,
+    SwitchNode,
+    CoalesceNode,
+    MinNode,
+    MaxNode,
+    AbsNode,
     OPS,
 )
 
@@ -145,6 +150,39 @@ class TariffLoader:
                         f"INPUT node '{name}' should not have extra fields: {extra_fields}"
                     )
 
+            elif node_type == "SWITCH":
+                if "var_node" not in spec:
+                    raise ValueError(f"SWITCH node '{name}' missing 'var_node'")
+                if "cases" not in spec:
+                    raise ValueError(f"SWITCH node '{name}' missing 'cases'")
+                if not isinstance(spec["cases"], dict) or len(spec["cases"]) == 0:
+                    raise ValueError(
+                        f"SWITCH node '{name}' must have non-empty 'cases' dict"
+                    )
+                var_node_name = spec["var_node"]
+                if var_node_name not in nodes:
+                    raise ValueError(
+                        f"SWITCH node '{name}' references unknown var_node '{var_node_name}'"
+                    )
+
+            elif node_type == "COALESCE":
+                inputs = spec.get("inputs")
+                if not isinstance(inputs, list) or len(inputs) == 0:
+                    raise ValueError(
+                        f"COALESCE node '{name}' must have non-empty 'inputs' list"
+                    )
+
+            elif node_type in ("MIN", "MAX"):
+                inputs = spec.get("inputs")
+                if not isinstance(inputs, list) or len(inputs) == 0:
+                    raise ValueError(
+                        f"{node_type} node '{name}' must have non-empty 'inputs' list"
+                    )
+
+            elif node_type == "ABS":
+                if "input" not in spec:
+                    raise ValueError(f"ABS node '{name}' missing 'input'")
+
             else:
                 raise ValueError(f"Unknown node type '{node_type}' in node '{name}'")
 
@@ -201,7 +239,7 @@ class TariffLoader:
                     name=name, dtype=cast(Type[Decimal], dtype)
                 )  # new node type wrapping context
 
-            elif node_type in ("ADD", "MULTIPLY", "LOOKUP", "IF", "ROUND"):
+            elif node_type in ("ADD", "MULTIPLY", "LOOKUP", "IF", "ROUND", "SWITCH", "COALESCE", "MIN", "MAX", "ABS"):
                 # composite nodes wired later
                 nodes[name] = None
 
@@ -257,5 +295,35 @@ class TariffLoader:
                     decimals=decimals,
                     mode=mode,
                 )
+
+            elif node_type == "SWITCH":
+                var_node_name = spec["var_node"]
+                var_node = nodes[var_node_name]
+                cases = spec["cases"]
+                default = spec.get("default")
+
+                nodes[name] = SwitchNode(
+                    name=name,
+                    var_node=var_node,
+                    cases=cases,
+                    default=default,
+                )
+
+            elif node_type == "COALESCE":
+                inputs = [nodes[i] for i in spec.get("inputs", [])]
+                nodes[name] = CoalesceNode(name, inputs)
+
+            elif node_type in ("MIN", "MAX"):
+                inputs = [nodes[i] for i in spec.get("inputs", [])]
+
+                if node_type == "MIN":
+                    nodes[name] = MinNode(name, inputs)
+                elif node_type == "MAX":
+                    nodes[name] = MaxNode(name, inputs)
+
+            elif node_type == "ABS":
+                input_name = spec["input"]
+                input_node = nodes[input_name]
+                nodes[name] = AbsNode(name=name, input_node=input_node)
 
         return nodes
