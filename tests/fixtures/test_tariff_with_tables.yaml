@@ -1,0 +1,47 @@
+product: TEST_PRODUCT
+version: 1.0
+currency: EUR
+
+# Tables déclarées dans le YAML
+tables:
+  age_factors:
+    type: range
+    source: test_age_factors.csv
+
+  brand_categories:
+    type: exact
+    source: test_brands.csv
+    key_column: brand
+    value_column: category
+
+nodes:
+  age:
+    type: INPUT
+    dtype: decimal
+
+  brand:
+    type: INPUT
+    dtype: str
+
+  base:
+    type: CONSTANT
+    value: 100
+
+  age_factor:
+    type: LOOKUP
+    table: age_factors
+    key_node: age
+    mode: range
+
+  brand_factor:
+    type: LOOKUP
+    table: brand_categories
+    key_node: brand
+    mode: exact
+
+  premium:
+    type: MULTIPLY
+    inputs:
+      - base
+      - age_factor
+      - brand_factor

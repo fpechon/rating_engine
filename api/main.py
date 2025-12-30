@@ -17,7 +17,6 @@ from fastapi.responses import JSONResponse
 from engine.graph import TariffGraph
 from engine.loader import TariffLoader
 from engine.metadata import TariffMetadata
-from engine.tables import load_exact_table, load_range_table
 
 from .models import (
     BatchPricingRequest,
@@ -43,7 +42,6 @@ def load_tariff_from_env() -> tuple[TariffGraph, TariffMetadata]:
 
     Variables d'environnement:
         TARIFF_PATH: Chemin vers le fichier tariff.yaml
-        TABLES_DIR: Répertoire contenant les tables CSV
 
     Returns:
         Tuple (graph, metadata)
@@ -53,74 +51,23 @@ def load_tariff_from_env() -> tuple[TariffGraph, TariffMetadata]:
         FileNotFoundError: Si les fichiers n'existent pas
     """
     tariff_path = os.getenv("TARIFF_PATH")
-    tables_dir = os.getenv("TABLES_DIR")
 
     if not tariff_path:
         # Par défaut, charger le tarif motor
         project_root = Path(__file__).parent.parent
         tariff_path = str(project_root / "tariffs/motor_private/2024_09/tariff.yaml")
-        tables_dir = str(project_root / "tariffs/motor_private/2024_09/tables")
 
     if not Path(tariff_path).exists():
         raise FileNotFoundError(f"Tariff file not found: {tariff_path}")
 
-    # Charger les tables
-    tables_path = Path(tables_dir) if tables_dir else Path(tariff_path).parent / "tables"
-
-    tables = {}
-    if tables_path.exists():
-        # Auto-détection : charger toutes les tables CSV du répertoire
-        # On essaie d'abord en range, puis en exact si ça échoue
-        for csv_file in tables_path.glob("*.csv"):
-            table_name = csv_file.stem  # nom sans extension
-            try:
-                # Essayer en range table (pour les tables avec min/max)
-                tables[table_name] = load_range_table(str(csv_file))
-                print(f"  Loaded range table: {table_name}")
-            except Exception:
-                # Sinon, essayer en exact table
-                try:
-                    # Détecter les colonnes key/value communes
-                    import pandas as pd
-
-                    df = pd.read_csv(csv_file, nrows=1)
-                    cols = df.columns.tolist()
-
-                    if "neighbourhood_id" in cols:
-                        # Table zoning spéciale
-                        tables[table_name] = load_exact_table(
-                            str(csv_file),
-                            key_column="neighbourhood_id",
-                            value_column="zone",
-                            key_type=int,
-                        )
-                    elif "key" in cols and "value" in cols:
-                        tables[table_name] = load_exact_table(
-                            str(csv_file),
-                            key_column="key",
-                            value_column="value",
-                        )
-                    elif "key" in cols and "factor" in cols:
-                        tables[table_name] = load_exact_table(
-                            str(csv_file),
-                            key_column="key",
-                            value_column="factor",
-                        )
-                    else:
-                        # Par défaut: première colonne = key, deuxième = value
-                        tables[table_name] = load_exact_table(
-                            str(csv_file),
-                            key_column=cols[0],
-                            value_column=cols[1],
-                        )
-                    print(f"  Loaded exact table: {table_name}")
-                except Exception as e:
-                    print(f"  ⚠️  Could not load table {table_name}: {e}")
-
-    # Charger le tarif
-    loader = TariffLoader(tables=tables)
-    nodes = loader.load(tariff_path)
+    # Charger le tarif avec ses tables (nouvelle méthode simplifiée)
+    loader = TariffLoader()
+    nodes, tables_loaded = loader.load_with_tables(tariff_path)
     graph = TariffGraph(nodes)
+
+    # Afficher les tables chargées
+    for table_info in tables_loaded:
+        print(f"  Loaded table: {table_info}")
 
     # Charger les métadonnées
     from engine.metadata import load_metadata_from_file

@@ -9,7 +9,6 @@ from pathlib import Path
 
 from engine.graph import TariffGraph
 from engine.loader import TariffLoader
-from engine.tables import load_exact_table, load_range_table
 from tools.interactive_viz import generate_interactive_viz
 
 
@@ -20,42 +19,14 @@ def visualize_motor_tariff():
     project_root = Path(__file__).parent.parent
     tariff_path = project_root / "tariffs/motor_private/2024_09/tariff.yaml"
 
-    # Charger les tables
-    tables_dir = tariff_path.parent / "tables"
-    tables = {
-        "driver_age_factor": load_range_table(str(tables_dir / "driver_age_factor.csv")),
-        "vehicle_brand_category": load_exact_table(
-            str(tables_dir / "vehicle_brand_category.csv"),
-            key_column="key",
-            value_column="value",
-        ),
-        "vehicle_brand_coefs": load_exact_table(
-            str(tables_dir / "vehicle_brand_coefs.csv"),
-            key_column="key",
-            value_column="value",
-            key_type=int,
-        ),
-        "zoning": load_exact_table(
-            str(tables_dir / "zoning.csv"),
-            key_column="neighbourhood_id",
-            value_column="zone",
-            key_type=int,
-        ),
-        "zoning_coefs": load_exact_table(
-            str(tables_dir / "zoning_coefs.csv"),
-            key_column="key",
-            value_column="value",
-            key_type=int,
-        ),
-    }
-
-    # Charger le tarif
+    # Charger le tarif (avec ses tables déclarées dans le YAML)
     print("📊 Chargement du tarif...")
-    loader = TariffLoader(tables=tables)
-    nodes = loader.load(str(tariff_path))
+    loader = TariffLoader()
+    nodes, tables_loaded = loader.load_with_tables(str(tariff_path))
     graph = TariffGraph(nodes)
 
     print(f"✓ Tarif chargé: {len(nodes)} nœuds")
+    print(f"✓ Tables: {', '.join(tables_loaded)}")
 
     # Génération 1: Visualisation simple (structure seulement)
     print("\n🎨 Génération de la visualisation simple...")

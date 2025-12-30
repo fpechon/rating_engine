@@ -2,6 +2,37 @@ product: MOTOR_PRIVATE
 version: 2024_09
 currency: EUR
 
+# Tables de lookup utilisées par le tarif
+tables:
+  driver_age_factor:
+    type: range
+    source: tables/driver_age_factor.csv
+
+  zoning:
+    type: exact
+    source: tables/zoning.csv
+    key_column: neighbourhood_id
+    value_column: zone
+    key_type: int
+
+  zoning_coefs:
+    type: exact
+    source: tables/zoning_coefs.csv
+    key_column: key
+    value_column: value
+
+  vehicle_brand_category:
+    type: exact
+    source: tables/vehicle_brand_category.csv
+    key_column: key
+    value_column: value
+
+  vehicle_brand_coefs:
+    type: exact
+    source: tables/vehicle_brand_coefs.csv
+    key_column: key
+    value_column: value
+
 nodes:
   driver_age:
     type: INPUT

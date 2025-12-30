@@ -329,3 +329,97 @@ class TariffLoader:
                 nodes[name] = AbsNode(name=name, input_node=input_node)
 
         return nodes
+
+    def load_with_tables(self, path: str):
+        """
+        Charge un tarif avec ses tables déclarées dans le YAML.
+
+        Cette méthode simplifie le chargement en lisant automatiquement
+        la section 'tables' du YAML et en chargeant les tables CSV correspondantes.
+
+        Args:
+            path: Chemin vers le fichier YAML du tarif
+
+        Returns:
+            Tuple (nodes, tables_loaded) où:
+                - nodes: Dictionnaire {nom -> Node} des nœuds créés
+                - tables_loaded: Liste des noms de tables chargées
+
+        Raises:
+            ValueError: Si la validation échoue ou si une table est mal configurée
+            FileNotFoundError: Si le fichier ou une table n'existe pas
+
+        Examples:
+            >>> loader = TariffLoader()
+            >>> nodes, tables = loader.load_with_tables("tariff.yaml")
+            >>> # Les tables sont automatiquement chargées depuis le YAML
+            >>> graph = TariffGraph(nodes)
+        """
+        from pathlib import Path
+
+        from engine.tables import load_exact_table, load_range_table
+
+        with open(path) as f:
+            data = yaml.safe_load(f)
+
+        tariff_dir = Path(path).parent
+        tables_loaded = []
+
+        # Charger les tables déclarées dans le YAML
+        if "tables" in data:
+            for table_name, table_config in data["tables"].items():
+                table_type = table_config.get("type")
+                if not table_type:
+                    raise ValueError(f"Table '{table_name}' missing 'type' field")
+
+                source = table_config.get("source")
+                if not source:
+                    raise ValueError(f"Table '{table_name}' missing 'source' field")
+
+                # Construire le chemin absolu de la table
+                table_path = tariff_dir / source
+                if not table_path.exists():
+                    raise FileNotFoundError(f"Table file not found: {table_path}")
+
+                # Charger selon le type
+                if table_type == "range":
+                    # Table avec min/max
+                    self.tables[table_name] = load_range_table(str(table_path))
+                    tables_loaded.append(f"{table_name} (range)")
+
+                elif table_type == "exact":
+                    # Table avec key/value exact
+                    key_column = table_config.get("key_column", "key")
+                    value_column = table_config.get("value_column", "value")
+                    key_type_str = table_config.get("key_type", "str")
+
+                    # Convertir le type
+                    if key_type_str == "int":
+                        key_type = int
+                    elif key_type_str == "str":
+                        key_type = str
+                    elif key_type_str == "decimal":
+                        key_type = Decimal
+                    else:
+                        raise ValueError(
+                            f"Table '{table_name}' has invalid key_type '{key_type_str}'"
+                        )
+
+                    self.tables[table_name] = load_exact_table(
+                        str(table_path),
+                        key_column=key_column,
+                        value_column=value_column,
+                        key_type=key_type,
+                    )
+                    tables_loaded.append(f"{table_name} (exact)")
+
+                else:
+                    raise ValueError(
+                        f"Table '{table_name}' has invalid type '{table_type}'. "
+                        f"Must be 'range' or 'exact'"
+                    )
+
+        # Charger les nœuds normalement
+        nodes = self.load(path)
+
+        return nodes, tables_loaded
