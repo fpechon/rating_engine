@@ -8,8 +8,9 @@ Un moteur de tarification moderne pour l'assurance P&C (Property & Casualty), ba
 - **Déterministe**: Arithmétique Decimal pour des calculs reproductibles
 - **Traçable**: Traçabilité complète de chaque calcul
 - **Performant**: Recherche binaire O(log n), batch evaluation, profiling
+- **Production-ready**: API REST FastAPI avec documentation OpenAPI
 - **Extensible**: Nouveaux types de nœuds, tables de lookup flexibles
-- **Testé**: 218 tests, 86% coverage
+- **Testé**: 238 tests, 86% coverage
 
 ## 🚀 Installation rapide
 
@@ -207,6 +208,140 @@ print(df)
 
 Performance: ~15,000-20,000 évaluations/seconde sur un CPU moderne.
 
+## 🌐 API REST
+
+Le rating engine peut être exposé via une API REST FastAPI pour une utilisation en production.
+
+### Démarrer le serveur
+
+```bash
+# Démarrer le serveur API
+uv run uvicorn api.main:app --reload
+
+# Ou avec des options personnalisées
+uv run uvicorn api.main:app --host 0.0.0.0 --port 8000
+```
+
+Le serveur démarre sur [http://localhost:8000](http://localhost:8000) avec:
+- **Documentation interactive**: [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI)
+- **Documentation alternative**: [http://localhost:8000/redoc](http://localhost:8000/redoc) (ReDoc)
+
+### Endpoints disponibles
+
+#### Health Check
+```bash
+curl http://localhost:8000/health
+```
+
+```json
+{
+  "status": "healthy",
+  "version": "0.1.0",
+  "tariff_loaded": true,
+  "tariff_info": {
+    "product": "MOTOR_PRIVATE",
+    "version": 202409,
+    "currency": "EUR",
+    "nodes_count": 15
+  }
+}
+```
+
+#### Single Pricing
+```bash
+curl -X POST http://localhost:8000/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "context": {
+      "driver_age": 35,
+      "brand": "BMW",
+      "density": 1200,
+      "neighbourhood_id": 19582
+    },
+    "target_node": "total_premium",
+    "include_trace": false
+  }'
+```
+
+```json
+{
+  "result": "429.18",
+  "target_node": "total_premium",
+  "context": {...},
+  "trace": null,
+  "metadata": {...}
+}
+```
+
+#### Batch Pricing
+```bash
+curl -X POST http://localhost:8000/evaluate/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contexts": [
+      {"driver_age": 22, "brand": "Renault", "density": 800, "neighbourhood_id": 19582},
+      {"driver_age": 35, "brand": "BMW", "density": 1200, "neighbourhood_id": 19582},
+      {"driver_age": 70, "brand": "Audi", "density": 1500, "neighbourhood_id": 19582}
+    ],
+    "target_node": "total_premium",
+    "collect_errors": true
+  }'
+```
+
+```json
+{
+  "results": [
+    {"row_index": 0, "result": "583.76", "context": {...}, "error": null},
+    {"row_index": 1, "result": "429.18", "context": {...}, "error": null},
+    {"row_index": 2, "result": "559.00", "context": {...}, "error": null}
+  ],
+  "total_count": 3,
+  "success_count": 3,
+  "error_count": 0,
+  "target_node": "total_premium",
+  "metadata": {...}
+}
+```
+
+### Client Python
+
+Utilisez `httpx` pour appeler l'API depuis Python:
+
+```python
+import httpx
+
+# Single pricing
+response = httpx.post(
+    "http://localhost:8000/evaluate",
+    json={
+        "context": {
+            "driver_age": 35,
+            "brand": "BMW",
+            "density": 1200,
+            "neighbourhood_id": 19582
+        },
+        "target_node": "total_premium",
+        "include_trace": False
+    }
+)
+data = response.json()
+print(f"Premium: {data['result']} EUR")
+```
+
+Voir [examples/api_client_example.py](examples/api_client_example.py) pour un exemple complet.
+
+### Configuration
+
+Le serveur charge automatiquement le tarif au démarrage. Vous pouvez personnaliser le tarif chargé avec des variables d'environnement:
+
+```bash
+export TARIFF_PATH=/path/to/tariff.yaml
+export TABLES_DIR=/path/to/tables
+uv run uvicorn api.main:app
+```
+
+Par défaut, le serveur charge le tarif motor (`tariffs/motor_private/2024_09/tariff.yaml`).
+
 ## 🧪 Tests et qualité
 
 ```bash
@@ -220,7 +355,7 @@ uv run pytest --cov=engine --cov-report=html
 uv run pytest -q
 ```
 
-Actuellement: **218 tests** avec **86.20% coverage**.
+Actuellement: **238 tests** avec **86% coverage** (incluant 20 tests API).
 
 ## 🔍 Profiling et debugging
 
