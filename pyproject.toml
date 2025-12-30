@@ -16,8 +16,8 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["engine*"]
-exclude = ["tests*", "sandbox*", "tariffs*", "tools*", "docs*"]
+include = ["engine*", "tools*"]
+exclude = ["tests*", "sandbox*", "tariffs*", "docs*"]
 
 [dependency-groups]
 dev = [
