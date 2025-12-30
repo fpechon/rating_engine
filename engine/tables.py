@@ -6,6 +6,7 @@ rapides de valeurs basées sur des clés (lookups), avec support pour
 les plages de valeurs et les correspondances exactes.
 """
 import csv
+import bisect
 from decimal import Decimal
 from typing import Type, Any
 
@@ -15,11 +16,13 @@ class RangeTable:
     Table de lookup basée sur des plages de valeurs.
 
     Permet de rechercher une valeur en fonction d'une plage numérique.
+    Utilise une recherche binaire pour des performances optimales (O(log n)).
     Utile pour les facteurs dépendants de l'âge, du kilométrage, etc.
 
     Attributes:
-        rows: Liste de dictionnaires {min, max, value}
+        rows: Liste de dictionnaires {min, max, value} triée par min
         default: Valeur par défaut si aucune plage ne correspond
+        _sorted_mins: Liste des valeurs min triées (pour bisect)
 
     Examples:
         >>> table = RangeTable([
@@ -36,16 +39,25 @@ class RangeTable:
         """
         Initialise une table de plages.
 
+        Les ranges sont triés par 'min' pour permettre une recherche binaire.
+        Complexité: O(n log n) pour le tri initial, O(log n) pour chaque lookup.
+
         Args:
             rows: Liste de dict avec clés 'min', 'max', 'value'
             default: Valeur par défaut optionnelle
         """
-        self.rows = rows
+        # Trier les ranges par min pour la recherche binaire
+        self.rows = sorted(rows, key=lambda r: r["min"])
         self.default = default
+        # Pré-calculer la liste des mins pour bisect
+        self._sorted_mins = [r["min"] for r in self.rows]
 
     def lookup(self, value):
         """
         Recherche une valeur dans les plages définies.
+
+        Utilise une recherche binaire (bisect) pour trouver rapidement
+        la plage correspondante. Complexité: O(log n).
 
         Args:
             value: Valeur numérique à rechercher
@@ -55,15 +67,37 @@ class RangeTable:
 
         Raises:
             KeyError: Si valeur hors de toutes les plages et pas de défaut
+
+        Performance:
+            - Pour 20,000 ranges: ~14 comparaisons vs 10,000 en moyenne (linéaire)
+            - Speedup: ~700x pour grandes tables
         """
         if value is None:
             if self.default is not None:
                 return self.default
             raise KeyError("Missing value and no default defined")
 
-        for r in self.rows:
+        # Recherche binaire: trouve l'index où value serait insérée
+        # Si idx > 0, le range candidat est à idx-1
+        idx = bisect.bisect_right(self._sorted_mins, value)
+
+        # Vérifier les ranges candidats (potentiellement plusieurs si ranges se chevauchent)
+        # On commence par le range juste avant le point d'insertion
+        if idx > 0:
+            r = self.rows[idx - 1]
             if r["min"] <= value <= r["max"]:
                 return r["value"]
+
+        # Si pas trouvé dans le range le plus probable, vérifier le range suivant
+        # (cas où value est pile entre deux ranges ou au début d'un range)
+        if idx < len(self.rows):
+            r = self.rows[idx]
+            if r["min"] <= value <= r["max"]:
+                return r["value"]
+
+        # Aucun range ne correspond
+        if self.default is not None:
+            return self.default
 
         raise KeyError(f"Value {value} outside all ranges")
 

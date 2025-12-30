@@ -162,3 +162,62 @@ class TariffGraph:
 
         eval_node(root, node_path)
         return cache[root] if trace is None else trace
+
+    def evaluate_batch(
+        self,
+        root: str,
+        contexts: List[Dict[str, Any]],
+        collect_errors: bool = False,
+    ):
+        """
+        Évalue le graphe pour plusieurs contextes en batch.
+
+        Cette méthode est optimisée pour traiter de grands volumes de données
+        (ex: pricing de portefeuilles entiers). Chaque contexte est évalué
+        indépendamment avec son propre cache.
+
+        Args:
+            root: Nom du nœud racine à évaluer
+            contexts: Liste de dictionnaires de contexte
+            collect_errors: Si True, collecte les erreurs au lieu de les lever
+                           (utile pour traiter un batch même si certains échouent)
+
+        Returns:
+            Si collect_errors=False: Liste des valeurs calculées (même ordre que contexts)
+            Si collect_errors=True: Tuple (results, errors) où:
+                - results: Liste des valeurs (None pour les lignes en erreur)
+                - errors: Liste des exceptions (None pour les lignes réussies)
+
+        Examples:
+            >>> contexts = [
+            ...     {"age": 30, "brand": "BMW"},
+            ...     {"age": 45, "brand": "Audi"},
+            ...     {"age": 55, "brand": "Toyota"},
+            ... ]
+            >>> results = graph.evaluate_batch("total_premium", contexts)
+            >>> len(results)
+            3
+
+            >>> # Avec gestion d'erreurs
+            >>> results, errors = graph.evaluate_batch(
+            ...     "total_premium", contexts, collect_errors=True
+            ... )
+            >>> failed_indices = [i for i, e in enumerate(errors) if e is not None]
+        """
+        if collect_errors:
+            results = []
+            errors = []
+
+            for ctx in contexts:
+                try:
+                    val = self.evaluate(root, ctx)
+                    results.append(val)
+                    errors.append(None)
+                except Exception as e:
+                    results.append(None)
+                    errors.append(e)
+
+            return results, errors
+        else:
+            # Mode normal : lève une exception à la première erreur
+            return [self.evaluate(root, ctx) for ctx in contexts]
