@@ -40,3 +40,7 @@ htmlcov/
 *.tmp
 *.temp
 .cache/
+
+# Generated visualization files
+*_tariff_*.html
+simple_example.html

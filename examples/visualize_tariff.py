@@ -14,19 +14,37 @@ from tools.interactive_viz import generate_interactive_viz
 def visualize_motor_tariff():
     """Visualise le tarif motor_private avec évaluation."""
 
-    # Chemin vers le tarif
-    tariff_path = Path("tariffs/motor_private/2024_09/tariff.yaml")
+    # Chemin vers le tarif (relatif au répertoire du projet)
+    project_root = Path(__file__).parent.parent
+    tariff_path = project_root / "tariffs/motor_private/2024_09/tariff.yaml"
 
     # Charger les tables
-    tables_dir = tariff_path.parent
+    tables_dir = tariff_path.parent / "tables"
     tables = {
-        "age_table": load_range_table(str(tables_dir / "age_factors.csv")),
-        "brand_table": load_exact_table(
-            str(tables_dir / "brand_factors.csv"),
-            key_column="brand",
-            value_column="factor",
+        "driver_age_factor": load_range_table(str(tables_dir / "driver_age_factor.csv")),
+        "vehicle_brand_category": load_exact_table(
+            str(tables_dir / "vehicle_brand_category.csv"),
+            key_column="key",
+            value_column="value",
         ),
-        "zoning_table": load_range_table(str(tables_dir / "zoning.csv")),
+        "vehicle_brand_coefs": load_exact_table(
+            str(tables_dir / "vehicle_brand_coefs.csv"),
+            key_column="key",
+            value_column="value",
+            key_type=int,
+        ),
+        "zoning": load_exact_table(
+            str(tables_dir / "zoning.csv"),
+            key_column="neighbourhood_id",
+            value_column="zone",
+            key_type=int,
+        ),
+        "zoning_coefs": load_exact_table(
+            str(tables_dir / "zoning_coefs.csv"),
+            key_column="key",
+            value_column="value",
+            key_type=int,
+        ),
     }
 
     # Charger le tarif
@@ -51,6 +69,7 @@ def visualize_motor_tariff():
         "driver_age": 35,
         "brand": "BMW",
         "density": 1200,
+        "neighbourhood_id": "19582",
     }
 
     trace = {}
@@ -131,7 +150,7 @@ if __name__ == "__main__":
     print("=" * 80)
 
     if len(sys.argv) > 1 and sys.argv[1] == "simple":
-        visualize_simple_example()
+        visualize_motor_tariff()
     else:
         try:
             visualize_motor_tariff()
