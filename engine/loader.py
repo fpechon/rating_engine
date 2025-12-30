@@ -1,5 +1,12 @@
+"""
+Module de chargement et validation des tarifs depuis YAML.
+
+Ce module fournit les outils pour charger des définitions de tarifs
+depuis des fichiers YAML et construire les graphes de calcul correspondants.
+"""
 import yaml
 from decimal import Decimal
+from typing import cast, Type
 from engine.nodes import (
     ConstantNode,
     AddNode,
@@ -13,6 +20,24 @@ from engine.nodes import (
 
 
 def parse_condition(expr: str):
+    """
+    Parse une expression conditionnelle en ses composants.
+
+    Args:
+        expr: Expression sous forme "var > threshold" (ex: "density > 1000")
+
+    Returns:
+        Tuple (nom_variable, opérateur, seuil)
+
+    Raises:
+        ValueError: Si l'expression est invalide
+
+    Examples:
+        >>> parse_condition("density > 1000")
+        ('density', '>', Decimal('1000'))
+        >>> parse_condition("age >= 18")
+        ('age', '>=', Decimal('18'))
+    """
     # check longer operator symbols first (e.g. '<=' before '<')
     for op_str in sorted(OPS.keys(), key=len, reverse=True):
         if op_str in expr:
@@ -22,10 +47,41 @@ def parse_condition(expr: str):
 
 
 class TariffLoader:
+    """
+    Chargeur et validateur de tarifs depuis YAML.
+
+    Cette classe gère le chargement de définitions de tarifs au format YAML
+    et la construction des graphes de nœuds correspondants.
+
+    Attributes:
+        tables: Dictionnaire des tables de lookup disponibles
+
+    Examples:
+        >>> tables = {"age_table": load_range_table("age_factors.csv")}
+        >>> loader = TariffLoader(tables=tables)
+        >>> nodes = loader.load("tariff.yaml")
+        >>> graph = TariffGraph(nodes)
+    """
+
     def __init__(self, tables=None):
+        """
+        Initialise le chargeur de tarifs.
+
+        Args:
+            tables: Dictionnaire optionnel {nom -> table} des tables de lookup
+        """
         self.tables = tables or {}
 
     def validate(self, data):
+        """
+        Valide la structure d'un tarif YAML.
+
+        Args:
+            data: Dictionnaire parsé depuis YAML
+
+        Raises:
+            ValueError: Si la structure est invalide
+        """
         if "nodes" not in data:
             raise ValueError("Tariff YAML must contain 'nodes'")
 
@@ -93,6 +149,28 @@ class TariffLoader:
                 raise ValueError(f"Unknown node type '{node_type}' in node '{name}'")
 
     def load(self, path: str):
+        """
+        Charge un tarif depuis un fichier YAML.
+
+        Cette méthode effectue un chargement en deux passes:
+        1. Création des nœuds feuilles (CONSTANT, INPUT)
+        2. Création des nœuds composites avec références
+
+        Args:
+            path: Chemin vers le fichier YAML du tarif
+
+        Returns:
+            Dictionnaire {nom -> Node} des nœuds créés
+
+        Raises:
+            ValueError: Si la validation échoue
+            FileNotFoundError: Si le fichier n'existe pas
+
+        Examples:
+            >>> loader = TariffLoader(tables={"age_table": age_table})
+            >>> nodes = loader.load("tariff.yaml")
+            >>> # nodes contient tous les nœuds du graphe
+        """
         with open(path) as f:
             data = yaml.safe_load(f)
 
@@ -120,7 +198,7 @@ class TariffLoader:
                     )
 
                 nodes[name] = InputNode(
-                    name=name, dtype=dtype
+                    name=name, dtype=cast(Type[Decimal], dtype)
                 )  # new node type wrapping context
 
             elif node_type in ("ADD", "MULTIPLY", "LOOKUP", "IF", "ROUND"):

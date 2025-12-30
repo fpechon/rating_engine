@@ -1,31 +1,164 @@
 from engine.nodes import Node
+from engine.validation import EvaluationError
+from typing import Optional, Dict, Any, List
+
 
 class TariffGraph:
+    """
+    Graphe de tarification pour l'évaluation des primes.
+
+    Le graphe représente un DAG (Directed Acyclic Graph) de nœuds de calcul.
+    L'évaluation se fait de manière récursive avec mise en cache des résultats.
+
+    Attributes:
+        nodes: Dictionnaire {nom -> Node} des nœuds du graphe
+    """
+
     def __init__(self, nodes: dict[str, Node]):
+        """
+        Initialise un graphe de tarification.
+
+        Args:
+            nodes: Dictionnaire des nœuds indexés par leur nom
+        """
         self.nodes = nodes
 
-    def evaluate(self, root, context, trace=None):
-        cache = {}
+    def evaluate(
+        self,
+        root: str,
+        context: Dict[str, Any],
+        trace: Optional[Dict] = None,
+        node_path: Optional[List[str]] = None,
+    ):
+        """
+        Évalue le graphe à partir d'un nœud racine.
 
-        def eval_node(name):
+        Le graphe est évalué de manière récursive avec mise en cache. En cas d'erreur,
+        le chemin complet des dépendances est inclus pour faciliter le debugging.
+
+        Args:
+            root: Nom du nœud racine à évaluer (ex: "total_premium")
+            context: Contexte contenant les valeurs d'input
+                    Exemple: {"driver_age": 30, "brand": "BMW", "density": 800}
+            trace: Dictionnaire optionnel pour collecter la trace d'évaluation.
+                   Si fourni, la méthode retourne ce dict avec les infos de chaque nœud
+                   évalué (valeur, type, chemin).
+            node_path: ⚠️ Paramètre interne uniquement, ne pas utiliser directement.
+                      Utilisé en interne pour tracer le chemin de dépendances lors d'erreurs.
+                      Exemple de chemin: ['total_premium', 'raw_total', 'technical_premium']
+
+        Returns:
+            - Si trace is None: La valeur calculée du nœud racine (Decimal)
+            - Si trace fourni: Le dictionnaire trace enrichi avec toutes les évaluations
+
+        Raises:
+            EvaluationError: En cas d'erreur lors de l'évaluation. L'exception inclut:
+                            - node_name: Le nom du nœud en erreur
+                            - node_path: Le chemin complet des dépendances
+                            - context: Le contexte d'évaluation (pour reproduction)
+                            - original_error: L'erreur Python originale
+            KeyError: Si le nœud racine n'existe pas dans le graphe
+
+        Examples:
+            >>> # Utilisation normale
+            >>> result = graph.evaluate("total_premium", {"age": 30, "brand": "BMW"})
+            Decimal('525.00')
+
+            >>> # Avec trace pour debugging
+            >>> trace = {}
+            >>> result = graph.evaluate("total_premium", context, trace=trace)
+            >>> print(trace["technical_premium"])
+            {'value': Decimal('500'), 'type': 'MultiplyNode', 'path': [...]}
+
+            >>> # Erreur avec chemin de dépendances détaillé
+            >>> try:
+            ...     graph.evaluate("total_premium", {"age": 17, "brand": "BMW"})
+            ... except EvaluationError as e:
+            ...     # Message d'erreur enrichi automatiquement:
+            ...     # Error evaluating node 'age_factor': 'Value 17 outside all ranges'
+            ...     #   Node: age_factor
+            ...     #   Path: total_premium -> technical_premium -> age_factor
+            ...     #   Context: {'age': 17, 'brand': 'BMW'}
+            ...     #   Original error: KeyError: 'Value 17 outside all ranges'
+            ...     print(e.node_path)  # ['total_premium', 'technical_premium', 'age_factor']
+        """
+        if root not in self.nodes:
+            available = list(self.nodes.keys())[:10]
+            raise KeyError(
+                f"Node '{root}' not found in graph. Available nodes: {available}"
+                + ("..." if len(self.nodes) > 10 else "")
+            )
+
+        cache = {}
+        if node_path is None:
+            node_path = []
+
+        def eval_node(name: str, current_path: List[str]):
+            """
+            Évalue un nœud de manière récursive.
+
+            Le current_path trace le chemin de dépendances pour les messages d'erreur.
+            Par exemple, si total_premium dépend de raw_total qui dépend de technical_premium:
+            - Appel 1: eval_node('total_premium', []) -> current_path = []
+            - Appel 2: eval_node('raw_total', ['total_premium']) -> current_path = ['total_premium']
+            - Appel 3: eval_node('technical_premium', ['total_premium', 'raw_total'])
+
+            En cas d'erreur, on voit exactement le chemin: total_premium -> raw_total -> technical_premium
+            """
             if name in cache:
                 return cache[name]
 
-            node = self.nodes[name]
-            for dep in node.dependencies():
-                eval_node(dep)
+            if name not in self.nodes:
+                raise EvaluationError(
+                    f"Node '{name}' referenced but not found in graph",
+                    node_name=name,
+                    node_path=current_path,
+                    context=context,
+                )
 
-            val = node.evaluate(context, cache)
+            node = self.nodes[name]
+            # Ajoute le nœud courant au chemin pour les appels récursifs
+            new_path = current_path + [name]
+
+            # Évaluer les dépendances
+            try:
+                for dep in node.dependencies():
+                    eval_node(dep, new_path)
+            except Exception as e:
+                if not isinstance(e, EvaluationError):
+                    raise EvaluationError(
+                        f"Error evaluating dependency '{dep}' of node '{name}'",
+                        node_name=name,
+                        node_path=new_path,
+                        context=context,
+                        original_error=e,
+                    )
+                raise
+
+            # Évaluer le nœud lui-même
+            try:
+                val = node.evaluate(context, cache)
+            except Exception as e:
+                if not isinstance(e, EvaluationError):
+                    raise EvaluationError(
+                        f"Error evaluating node '{name}': {str(e)}",
+                        node_name=name,
+                        node_path=new_path,
+                        context=context,
+                        original_error=e,
+                    )
+                raise
+
             cache[name] = val
 
             if trace is not None:
                 trace[name] = {
                     "value": val,
                     "type": type(node).__name__,
-                    # optionally add more info here
+                    "path": new_path,
                 }
 
             return val
 
-        eval_node(root)
+        eval_node(root, node_path)
         return cache[root] if trace is None else trace
