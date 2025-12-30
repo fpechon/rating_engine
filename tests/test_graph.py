@@ -1,19 +1,22 @@
 """
 Tests unitaires pour TariffGraph et l'évaluation du graphe.
 """
-import pytest
+
 from decimal import Decimal
+
+import pytest
+
 from engine.graph import TariffGraph
 from engine.nodes import (
-    ConstantNode,
-    InputNode,
     AddNode,
-    MultiplyNode,
+    ConstantNode,
     IfNode,
+    InputNode,
     LookupNode,
+    MultiplyNode,
     RoundNode,
 )
-from engine.tables import RangeTable, ExactMatchTable
+from engine.tables import ExactMatchTable, RangeTable
 
 
 class TestTariffGraph:
@@ -77,10 +80,12 @@ class TestTariffGraph:
         assert result == Decimal("150")
 
     def test_evaluate_with_lookup(self):
-        table = RangeTable([
-            {"min": 18, "max": 25, "value": Decimal("1.8")},
-            {"min": 26, "max": 65, "value": Decimal("1.0")},
-        ])
+        table = RangeTable(
+            [
+                {"min": 18, "max": 25, "value": Decimal("1.8")},
+                {"min": 26, "max": 65, "value": Decimal("1.0")},
+            ]
+        )
         age = InputNode("age")
         age_factor = LookupNode("age_factor", table, age)
         base = ConstantNode("base", Decimal("500"))
@@ -98,10 +103,17 @@ class TestTariffGraph:
 
     def test_evaluate_with_conditional(self):
         density = InputNode("density")
-        density_factor = IfNode("density_factor", density, ">", 1000, Decimal("1.2"), Decimal("1.0"))
+        density_factor = IfNode(
+            "density_factor", density, ">", 1000, Decimal("1.2"), Decimal("1.0")
+        )
         base = ConstantNode("base", Decimal("500"))
         premium = MultiplyNode("premium", [base, density_factor])
-        nodes = {"density": density, "density_factor": density_factor, "base": base, "premium": premium}
+        nodes = {
+            "density": density,
+            "density_factor": density_factor,
+            "base": base,
+            "premium": premium,
+        }
         graph = TariffGraph(nodes)
 
         # High density
@@ -204,16 +216,20 @@ class TestTariffGraph:
     def test_evaluate_realistic_motor_insurance(self):
         """Test simulating a realistic motor insurance calculation."""
         # Tables
-        age_table = RangeTable([
-            {"min": 18, "max": 25, "value": Decimal("1.8")},
-            {"min": 26, "max": 65, "value": Decimal("1.0")},
-            {"min": 66, "max": 99, "value": Decimal("1.3")},
-        ])
-        brand_table = ExactMatchTable({
-            "BMW": Decimal("1.2"),
-            "Audi": Decimal("1.1"),
-            "__DEFAULT__": Decimal("1.0"),
-        })
+        age_table = RangeTable(
+            [
+                {"min": 18, "max": 25, "value": Decimal("1.8")},
+                {"min": 26, "max": 65, "value": Decimal("1.0")},
+                {"min": 66, "max": 99, "value": Decimal("1.3")},
+            ]
+        )
+        brand_table = ExactMatchTable(
+            {
+                "BMW": Decimal("1.2"),
+                "Audi": Decimal("1.1"),
+                "__DEFAULT__": Decimal("1.0"),
+            }
+        )
 
         # Nodes
         driver_age = InputNode("driver_age")
@@ -223,8 +239,12 @@ class TestTariffGraph:
         fee = ConstantNode("fee", Decimal("25"))
         age_factor = LookupNode("age_factor", age_table, driver_age)
         brand_factor = LookupNode("brand_factor", brand_table, brand)
-        density_factor = IfNode("density_factor", density, ">", 1000, Decimal("1.2"), Decimal("1.0"))
-        technical_premium = MultiplyNode("technical_premium", [base_premium, age_factor, brand_factor, density_factor])
+        density_factor = IfNode(
+            "density_factor", density, ">", 1000, Decimal("1.2"), Decimal("1.0")
+        )
+        technical_premium = MultiplyNode(
+            "technical_premium", [base_premium, age_factor, brand_factor, density_factor]
+        )
         raw_total = AddNode("raw_total", [technical_premium, fee])
         total_premium = RoundNode("total_premium", raw_total, 2, "HALF_UP")
 

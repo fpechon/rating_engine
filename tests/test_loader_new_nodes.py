@@ -4,12 +4,14 @@ Tests pour le chargement YAML des nouveaux nœuds (Phase 2).
 Ce module teste l'intégration des nouveaux nœuds dans le TariffLoader.
 """
 
-import pytest
-import tempfile
 import os
+import tempfile
 from decimal import Decimal
-from engine.loader import TariffLoader
+
+import pytest
+
 from engine.graph import TariffGraph
+from engine.loader import TariffLoader
 
 
 class TestLoaderSwitchNode:

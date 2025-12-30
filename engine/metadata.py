@@ -7,12 +7,11 @@ Ce module fournit des utilitaires pour:
 - Gérer le versionnage des tarifs
 """
 
-import json
 import csv
-from pathlib import Path
-from typing import Dict, Any, Optional, List
-from decimal import Decimal
+import json
 from datetime import datetime
+from decimal import Decimal
+from typing import Any, Dict, List, Optional
 
 
 class TariffMetadata:
@@ -49,7 +48,7 @@ class TariffMetadata:
         author: Optional[str] = None,
         description: Optional[str] = None,
         changelog: Optional[List[Dict]] = None,
-        **custom
+        **custom,
     ):
         """
         Initialise les métadonnées.
@@ -117,8 +116,11 @@ class TariffMetadata:
             author=meta.get("author"),
             description=meta.get("description"),
             changelog=meta.get("changelog"),
-            **{k: v for k, v in meta.items()
-               if k not in ["effective_date", "author", "description", "changelog"]}
+            **{
+                k: v
+                for k, v in meta.items()
+                if k not in ["effective_date", "author", "description", "changelog"]
+            },
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -157,7 +159,7 @@ def export_trace_to_json(
     output_path: str,
     metadata: Optional[TariffMetadata] = None,
     context: Optional[Dict[str, Any]] = None,
-    pretty: bool = True
+    pretty: bool = True,
 ) -> None:
     """
     Exporte une trace d'évaluation en JSON.
@@ -179,6 +181,7 @@ def export_trace_to_json(
         ...     context=context
         ... )
     """
+
     # Convertir les Decimal en float pour JSON
     def decimal_to_float(obj):
         if isinstance(obj, Decimal):
@@ -202,7 +205,7 @@ def export_trace_to_json(
         data["context"] = decimal_to_float(context)
 
     # Écrire le fichier
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         if pretty:
             json.dump(data, f, indent=2)
         else:
@@ -210,9 +213,7 @@ def export_trace_to_json(
 
 
 def export_trace_to_csv(
-    trace: Dict[str, Any],
-    output_path: str,
-    context: Optional[Dict[str, Any]] = None
+    trace: Dict[str, Any], output_path: str, context: Optional[Dict[str, Any]] = None
 ) -> None:
     """
     Exporte une trace d'évaluation en CSV.
@@ -236,7 +237,7 @@ def export_trace_to_csv(
     if context:
         fieldnames.extend([f"context_{k}" for k in context.keys()])
 
-    with open(output_path, 'w', newline='') as f:
+    with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -260,7 +261,7 @@ def export_batch_results(
     results: List[Any],
     contexts: List[Dict[str, Any]],
     output_path: str,
-    errors: Optional[List[Optional[Exception]]] = None
+    errors: Optional[List[Optional[Exception]]] = None,
 ) -> None:
     """
     Exporte les résultats d'un batch evaluation en CSV.
@@ -298,7 +299,7 @@ def export_batch_results(
         fieldnames.append("error")
     fieldnames.extend(context_keys)
 
-    with open(output_path, 'w', newline='') as f:
+    with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 

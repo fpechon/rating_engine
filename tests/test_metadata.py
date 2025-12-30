@@ -2,16 +2,18 @@
 Tests pour le module metadata (métadonnées et export).
 """
 
-import pytest
-import json
 import csv
-from pathlib import Path
+import json
 from decimal import Decimal
+from pathlib import Path
+
+import pytest
+
 from engine.metadata import (
     TariffMetadata,
-    export_trace_to_json,
-    export_trace_to_csv,
     export_batch_results,
+    export_trace_to_csv,
+    export_trace_to_json,
     load_metadata_from_file,
 )
 
@@ -21,11 +23,7 @@ class TestTariffMetadata:
 
     def test_init_minimal(self):
         """Test initialisation avec champs obligatoires uniquement."""
-        metadata = TariffMetadata(
-            product="MOTOR",
-            version="2024_09",
-            currency="EUR"
-        )
+        metadata = TariffMetadata(product="MOTOR", version="2024_09", currency="EUR")
 
         assert metadata.product == "MOTOR"
         assert metadata.version == "2024_09"
@@ -42,7 +40,7 @@ class TestTariffMetadata:
             effective_date="2024-09-01",
             author="John Doe",
             description="Test tariff",
-            changelog=[{"version": "2024_08", "changes": "Initial"}]
+            changelog=[{"version": "2024_08", "changes": "Initial"}],
         )
 
         assert metadata.effective_date == "2024-09-01"
@@ -57,7 +55,7 @@ class TestTariffMetadata:
             version="2024_09",
             currency="EUR",
             custom_field="custom_value",
-            another_field=123
+            another_field=123,
         )
 
         assert metadata.custom["custom_field"] == "custom_value"
@@ -65,12 +63,7 @@ class TestTariffMetadata:
 
     def test_from_yaml_data_minimal(self):
         """Test création depuis YAML minimal."""
-        data = {
-            "product": "MOTOR",
-            "version": "2024_09",
-            "currency": "EUR",
-            "nodes": {}
-        }
+        data = {"product": "MOTOR", "version": "2024_09", "currency": "EUR", "nodes": {}}
 
         metadata = TariffMetadata.from_yaml_data(data)
 
@@ -87,9 +80,9 @@ class TestTariffMetadata:
             "metadata": {
                 "effective_date": "2024-09-01",
                 "author": "John Doe",
-                "description": "Test tariff"
+                "description": "Test tariff",
             },
-            "nodes": {}
+            "nodes": {},
         }
 
         metadata = TariffMetadata.from_yaml_data(data)
@@ -121,11 +114,7 @@ class TestTariffMetadata:
 
     def test_to_dict_minimal(self):
         """Test conversion en dict (minimal)."""
-        metadata = TariffMetadata(
-            product="MOTOR",
-            version="2024_09",
-            currency="EUR"
-        )
+        metadata = TariffMetadata(product="MOTOR", version="2024_09", currency="EUR")
 
         result = metadata.to_dict()
 
@@ -141,7 +130,7 @@ class TestTariffMetadata:
             version="2024_09",
             currency="EUR",
             effective_date="2024-09-01",
-            author="John Doe"
+            author="John Doe",
         )
 
         result = metadata.to_dict()
@@ -179,11 +168,7 @@ class TestExportTraceToJSON:
     def test_export_with_metadata(self, tmp_path):
         """Test export avec métadonnées."""
         trace = {"a": {"value": Decimal("100"), "type": "ConstantNode", "path": ["a"]}}
-        metadata = TariffMetadata(
-            product="MOTOR",
-            version="2024_09",
-            currency="EUR"
-        )
+        metadata = TariffMetadata(product="MOTOR", version="2024_09", currency="EUR")
 
         output_file = tmp_path / "trace.json"
         export_trace_to_json(trace, str(output_file), metadata=metadata)
@@ -240,7 +225,7 @@ class TestExportTraceToCSV:
         # Vérifier le fichier CSV
         assert output_file.exists()
 
-        with open(output_file, newline='') as f:
+        with open(output_file, newline="") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
@@ -258,7 +243,7 @@ class TestExportTraceToCSV:
         output_file = tmp_path / "trace.csv"
         export_trace_to_csv(trace, str(output_file), context=context)
 
-        with open(output_file, newline='') as f:
+        with open(output_file, newline="") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
@@ -281,7 +266,7 @@ class TestExportBatchResults:
         export_batch_results(results, contexts, str(output_file))
 
         # Vérifier le fichier CSV
-        with open(output_file, newline='') as f:
+        with open(output_file, newline="") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
@@ -301,7 +286,7 @@ class TestExportBatchResults:
         output_file = tmp_path / "batch.csv"
         export_batch_results(results, contexts, str(output_file), errors=errors)
 
-        with open(output_file, newline='') as f:
+        with open(output_file, newline="") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
@@ -321,7 +306,7 @@ class TestExportBatchResults:
         output_file = tmp_path / "batch.csv"
         export_batch_results(results, contexts, str(output_file))
 
-        with open(output_file, newline='') as f:
+        with open(output_file, newline="") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 

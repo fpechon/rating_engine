@@ -5,10 +5,11 @@ Ce module fournit des structures de données pour effectuer des recherches
 rapides de valeurs basées sur des clés (lookups), avec support pour
 les plages de valeurs et les correspondances exactes.
 """
-import csv
+
 import bisect
+import csv
 from decimal import Decimal
-from typing import Type, Any
+from typing import Any, Type
 
 
 class RangeTable:

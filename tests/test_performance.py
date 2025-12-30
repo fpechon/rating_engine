@@ -7,13 +7,15 @@ Ce module teste les optimisations implémentées dans la Phase 2:
 - Profiling
 """
 
-import pytest
 import time
 from decimal import Decimal
-from engine.tables import RangeTable
-from engine.nodes import ConstantNode, InputNode, AddNode, MultiplyNode
+
+import pytest
+
 from engine.graph import TariffGraph
+from engine.nodes import AddNode, ConstantNode, InputNode, MultiplyNode
 from engine.profiler import PerformanceProfiler
+from engine.tables import RangeTable
 
 
 class TestRangeTableOptimization:

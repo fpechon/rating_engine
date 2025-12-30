@@ -2,14 +2,17 @@
 Tests d'intégration end-to-end pour le rating engine.
 Ces tests vérifient que tous les composants fonctionnent correctement ensemble.
 """
-import pytest
-from decimal import Decimal
-import tempfile
+
 import csv
+import tempfile
+from decimal import Decimal
 from pathlib import Path
-from engine.loader import TariffLoader
+
+import pytest
+
 from engine.graph import TariffGraph
-from engine.tables import load_range_table, load_exact_table
+from engine.loader import TariffLoader
+from engine.tables import load_exact_table, load_range_table
 
 
 class TestEndToEndIntegration:
@@ -62,14 +65,14 @@ nodes:
     decimals: 2
     mode: HALF_UP
 """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             return f.name
 
     @pytest.fixture
     def age_factor_table_csv(self):
         """Crée une table CSV d'âge pour les tests."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             writer = csv.DictWriter(f, fieldnames=["min", "max", "value"])
             writer.writeheader()
             writer.writerow({"min": "18", "max": "25", "value": "1.8"})
@@ -80,7 +83,7 @@ nodes:
     @pytest.fixture
     def brand_factor_table_csv(self):
         """Crée une table CSV de marques pour les tests."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             writer = csv.DictWriter(f, fieldnames=["key", "value"])
             writer.writeheader()
             writer.writerow({"key": "BMW", "value": "1.2"})
@@ -105,9 +108,7 @@ nodes:
         Path(age_factor_table_csv).unlink(missing_ok=True)
         Path(brand_factor_table_csv).unlink(missing_ok=True)
 
-    def test_full_pipeline_young_driver_premium_brand(
-        self, sample_tariff_yaml, tables, cleanup
-    ):
+    def test_full_pipeline_young_driver_premium_brand(self, sample_tariff_yaml, tables, cleanup):
         """Test complet: jeune conducteur, marque premium, haute densité."""
         loader = TariffLoader(tables=tables)
         nodes = loader.load(sample_tariff_yaml)
@@ -157,9 +158,7 @@ nodes:
         # total_premium = 475.00
         assert result == Decimal("475.00")
 
-    def test_full_pipeline_senior_driver(
-        self, sample_tariff_yaml, tables, cleanup
-    ):
+    def test_full_pipeline_senior_driver(self, sample_tariff_yaml, tables, cleanup):
         """Test complet: conducteur senior, marque par défaut."""
         loader = TariffLoader(tables=tables)
         nodes = loader.load(sample_tariff_yaml)
@@ -183,9 +182,7 @@ nodes:
         # total_premium = 805.00
         assert result == Decimal("805.00")
 
-    def test_full_pipeline_with_trace(
-        self, sample_tariff_yaml, tables, cleanup
-    ):
+    def test_full_pipeline_with_trace(self, sample_tariff_yaml, tables, cleanup):
         """Test complet avec traçabilité complète."""
         loader = TariffLoader(tables=tables)
         nodes = loader.load(sample_tariff_yaml)
@@ -202,9 +199,17 @@ nodes:
 
         # Vérifie que tous les nœuds sont dans la trace
         expected_nodes = [
-            "driver_age", "brand", "density",
-            "base_premium", "driver_factor", "brand_factor", "density_factor",
-            "technical_premium", "fee", "raw_total", "total_premium"
+            "driver_age",
+            "brand",
+            "density",
+            "base_premium",
+            "driver_factor",
+            "brand_factor",
+            "density_factor",
+            "technical_premium",
+            "fee",
+            "raw_total",
+            "total_premium",
         ]
         for node_name in expected_nodes:
             assert node_name in trace
@@ -244,9 +249,7 @@ nodes:
         result3 = graph.evaluate("total_premium", context1)
         assert result3 == Decimal("1321.00")
 
-    def test_evaluation_intermediate_nodes(
-        self, sample_tariff_yaml, tables, cleanup
-    ):
+    def test_evaluation_intermediate_nodes(self, sample_tariff_yaml, tables, cleanup):
         """Test l'évaluation de nœuds intermédiaires."""
         loader = TariffLoader(tables=tables)
         nodes = loader.load(sample_tariff_yaml)
@@ -263,9 +266,7 @@ nodes:
         density_factor = graph.evaluate("density_factor", context)
         assert density_factor == Decimal("1.0")
 
-    def test_boundary_conditions(
-        self, sample_tariff_yaml, tables, cleanup
-    ):
+    def test_boundary_conditions(self, sample_tariff_yaml, tables, cleanup):
         """Test les conditions limites."""
         loader = TariffLoader(tables=tables)
         nodes = loader.load(sample_tariff_yaml)
@@ -295,9 +296,7 @@ nodes:
         # 500 * 1.0 * 0.9 * 1.2 + 25 = 565.00 (density_factor = 1.2)
         assert result4 == Decimal("565.00")
 
-    def test_error_handling_missing_input(
-        self, sample_tariff_yaml, tables, cleanup
-    ):
+    def test_error_handling_missing_input(self, sample_tariff_yaml, tables, cleanup):
         """Test la gestion d'erreur pour input manquant."""
         from engine.validation import EvaluationError
 
@@ -311,9 +310,7 @@ nodes:
         with pytest.raises(EvaluationError, match="Missing input variable: brand"):
             graph.evaluate("total_premium", context)
 
-    def test_error_handling_age_out_of_range(
-        self, sample_tariff_yaml, tables, cleanup
-    ):
+    def test_error_handling_age_out_of_range(self, sample_tariff_yaml, tables, cleanup):
         """Test la gestion d'erreur pour âge hors plage."""
         from engine.validation import EvaluationError
 
@@ -327,9 +324,7 @@ nodes:
         with pytest.raises(EvaluationError, match="Value 17 outside all ranges"):
             graph.evaluate("total_premium", context)
 
-    def test_decimal_precision_preserved(
-        self, sample_tariff_yaml, tables, cleanup
-    ):
+    def test_decimal_precision_preserved(self, sample_tariff_yaml, tables, cleanup):
         """Test que la précision décimale est préservée."""
         loader = TariffLoader(tables=tables)
         nodes = loader.load(sample_tariff_yaml)
@@ -344,9 +339,7 @@ nodes:
         # Vérifie l'arrondi à 2 décimales
         assert result == result.quantize(Decimal("0.01"))
 
-    def test_load_and_evaluate_without_modifications(
-        self, sample_tariff_yaml, tables, cleanup
-    ):
+    def test_load_and_evaluate_without_modifications(self, sample_tariff_yaml, tables, cleanup):
         """Test que charger et évaluer plusieurs fois donne les mêmes résultats."""
         loader1 = TariffLoader(tables=tables)
         nodes1 = loader1.load(sample_tariff_yaml)

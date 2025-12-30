@@ -4,9 +4,11 @@ Visualisation interactive du graphe de tarification.
 Ce module génère une visualisation HTML/JavaScript interactive du graphe
 permettant d'explorer la structure du tarif et de visualiser les évaluations.
 """
+
 import json
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
+
 from engine.graph import TariffGraph
 
 
@@ -63,20 +65,24 @@ def generate_interactive_viz(
         if context and hasattr(node, "dtype") and name in context:
             input_value = str(context[name])
 
-        nodes_data.append({
-            "id": name,
-            "label": name,
-            "type": node_type,
-            "value": value,
-            "input_value": input_value,
-        })
+        nodes_data.append(
+            {
+                "id": name,
+                "label": name,
+                "type": node_type,
+                "value": value,
+                "input_value": input_value,
+            }
+        )
 
         # Ajouter les edges (dépendances)
         for dep in node.dependencies():
-            edges_data.append({
-                "from": dep,
-                "to": name,
-            })
+            edges_data.append(
+                {
+                    "from": dep,
+                    "to": name,
+                }
+            )
 
     # Générer le HTML avec vis.js
     html_content = _generate_html_template(
@@ -442,12 +448,14 @@ def _generate_legend_html(node_colors):
     html_parts = []
     for node_type, color in node_colors.items():
         display_name = node_type.replace("Node", "")
-        html_parts.append(f"""
+        html_parts.append(
+            f"""
                 <div class="legend-item">
                     <div class="legend-color" style="background: {color};"></div>
                     <span>{display_name}</span>
                 </div>
-        """)
+        """
+        )
     return "".join(html_parts)
 
 
@@ -496,7 +504,6 @@ if __name__ == "__main__":
 
     try:
         # Essayer de charger avec les tables du tarif
-        from pathlib import Path
         tariff_dir = Path(tariff_path).parent
         # TODO: Auto-detect tables from YAML
         loader = TariffLoader(tables={})

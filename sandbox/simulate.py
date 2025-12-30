@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 def price_dataframe(df, graph, root):
     premiums = []
 

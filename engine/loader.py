@@ -4,23 +4,26 @@ Module de chargement et validation des tarifs depuis YAML.
 Ce module fournit les outils pour charger des définitions de tarifs
 depuis des fichiers YAML et construire les graphes de calcul correspondants.
 """
-import yaml
+
 from decimal import Decimal
-from typing import cast, Type
+from typing import Type, cast
+
+import yaml
+
 from engine.nodes import (
-    ConstantNode,
-    AddNode,
-    MultiplyNode,
-    LookupNode,
-    IfNode,
-    RoundNode,
-    InputNode,
-    SwitchNode,
-    CoalesceNode,
-    MinNode,
-    MaxNode,
-    AbsNode,
     OPS,
+    AbsNode,
+    AddNode,
+    CoalesceNode,
+    ConstantNode,
+    IfNode,
+    InputNode,
+    LookupNode,
+    MaxNode,
+    MinNode,
+    MultiplyNode,
+    RoundNode,
+    SwitchNode,
 )
 
 
@@ -105,9 +108,7 @@ class TariffLoader:
             elif node_type in ("ADD", "MULTIPLY"):
                 inputs = spec.get("inputs")
                 if not isinstance(inputs, list) or len(inputs) == 0:
-                    raise ValueError(
-                        f"{node_type} node '{name}' must have non-empty 'inputs' list"
-                    )
+                    raise ValueError(f"{node_type} node '{name}' must have non-empty 'inputs' list")
 
             elif node_type == "LOOKUP":
                 if "table" not in spec:
@@ -137,9 +138,7 @@ class TariffLoader:
                 if "input" not in spec:
                     raise ValueError(f"ROUND node '{name}' missing 'input'")
                 if "mode" in spec and spec["mode"] not in ("HALF_UP", "HALF_EVEN"):
-                    raise ValueError(
-                        f"ROUND node '{name}' has invalid mode '{spec['mode']}'"
-                    )
+                    raise ValueError(f"ROUND node '{name}' has invalid mode '{spec['mode']}'")
 
             elif node_type == "INPUT":
                 # leaf node wrapping a context variable, must have no extra fields
@@ -156,9 +155,7 @@ class TariffLoader:
                 if "cases" not in spec:
                     raise ValueError(f"SWITCH node '{name}' missing 'cases'")
                 if not isinstance(spec["cases"], dict) or len(spec["cases"]) == 0:
-                    raise ValueError(
-                        f"SWITCH node '{name}' must have non-empty 'cases' dict"
-                    )
+                    raise ValueError(f"SWITCH node '{name}' must have non-empty 'cases' dict")
                 var_node_name = spec["var_node"]
                 if var_node_name not in nodes:
                     raise ValueError(
@@ -168,16 +165,12 @@ class TariffLoader:
             elif node_type == "COALESCE":
                 inputs = spec.get("inputs")
                 if not isinstance(inputs, list) or len(inputs) == 0:
-                    raise ValueError(
-                        f"COALESCE node '{name}' must have non-empty 'inputs' list"
-                    )
+                    raise ValueError(f"COALESCE node '{name}' must have non-empty 'inputs' list")
 
             elif node_type in ("MIN", "MAX"):
                 inputs = spec.get("inputs")
                 if not isinstance(inputs, list) or len(inputs) == 0:
-                    raise ValueError(
-                        f"{node_type} node '{name}' must have non-empty 'inputs' list"
-                    )
+                    raise ValueError(f"{node_type} node '{name}' must have non-empty 'inputs' list")
 
             elif node_type == "ABS":
                 if "input" not in spec:
@@ -231,15 +224,24 @@ class TariffLoader:
                 elif dtype_str == "str":
                     dtype = str
                 else:
-                    raise ValueError(
-                        f"INPUT node '{name}' has unknown dtype '{dtype_str}'"
-                    )
+                    raise ValueError(f"INPUT node '{name}' has unknown dtype '{dtype_str}'")
 
                 nodes[name] = InputNode(
                     name=name, dtype=cast(Type[Decimal], dtype)
                 )  # new node type wrapping context
 
-            elif node_type in ("ADD", "MULTIPLY", "LOOKUP", "IF", "ROUND", "SWITCH", "COALESCE", "MIN", "MAX", "ABS"):
+            elif node_type in (
+                "ADD",
+                "MULTIPLY",
+                "LOOKUP",
+                "IF",
+                "ROUND",
+                "SWITCH",
+                "COALESCE",
+                "MIN",
+                "MAX",
+                "ABS",
+            ):
                 # composite nodes wired later
                 nodes[name] = None
 

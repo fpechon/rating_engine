@@ -8,16 +8,18 @@ Ce module teste les nœuds ajoutés dans la Phase 2:
 - AbsNode: Valeur absolue
 """
 
-import pytest
 from decimal import Decimal
+
+import pytest
+
 from engine.nodes import (
+    AbsNode,
+    CoalesceNode,
     ConstantNode,
     InputNode,
-    SwitchNode,
-    CoalesceNode,
-    MinNode,
     MaxNode,
-    AbsNode,
+    MinNode,
+    SwitchNode,
 )
 
 

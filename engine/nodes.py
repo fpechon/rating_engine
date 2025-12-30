@@ -5,10 +5,11 @@ Ce module contient tous les types de nœuds utilisés pour construire
 un graphe de calcul de prime d'assurance. Chaque nœud représente
 une opération ou une valeur dans le calcul.
 """
-from abc import ABC, abstractmethod
-from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_EVEN
+
 import operator
-from typing import Optional, Union, Callable
+from abc import ABC, abstractmethod
+from decimal import ROUND_HALF_EVEN, ROUND_HALF_UP, Decimal
+from typing import Callable, Optional, Union
 
 # Opérateurs de comparaison supportés pour les conditions
 OPS = {
@@ -348,7 +349,9 @@ class IfNode(Node):
         >>> # Si density > 1000: retourne 1.2, sinon 1.0
     """
 
-    def __init__(self, name, var_node: Node, op: Union[str, Callable], threshold, then_val, else_val):
+    def __init__(
+        self, name, var_node: Node, op: Union[str, Callable], threshold, then_val, else_val
+    ):
         """
         Initialise un nœud conditionnel.
 

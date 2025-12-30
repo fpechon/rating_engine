@@ -4,10 +4,12 @@ Exemple d'utilisation de la visualisation interactive.
 Ce script montre comment générer une visualisation interactive d'un tarif,
 avec ou sans évaluation.
 """
+
 from pathlib import Path
-from engine.loader import TariffLoader
-from engine.tables import load_range_table, load_exact_table
+
 from engine.graph import TariffGraph
+from engine.loader import TariffLoader
+from engine.tables import load_exact_table, load_range_table
 from tools.interactive_viz import generate_interactive_viz
 
 
@@ -94,8 +96,9 @@ def visualize_motor_tariff():
 
 def visualize_simple_example():
     """Crée et visualise un exemple simple."""
-    from engine.nodes import ConstantNode, InputNode, AddNode, MultiplyNode
     from decimal import Decimal
+
+    from engine.nodes import AddNode, ConstantNode, InputNode, MultiplyNode
 
     print("📊 Création d'un exemple simple...")
 

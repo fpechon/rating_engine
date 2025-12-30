@@ -1,6 +1,7 @@
+from typing import Any, Dict, List, Optional
+
 from engine.nodes import Node
 from engine.validation import EvaluationError
-from typing import Optional, Dict, Any, List
 
 
 class TariffGraph:
@@ -98,12 +99,13 @@ class TariffGraph:
             Évalue un nœud de manière récursive.
 
             Le current_path trace le chemin de dépendances pour les messages d'erreur.
-            Par exemple, si total_premium dépend de raw_total qui dépend de technical_premium:
+            Par exemple, si total_premium dépend de raw_total qui dépend de
+            technical_premium:
             - Appel 1: eval_node('total_premium', []) -> current_path = []
-            - Appel 2: eval_node('raw_total', ['total_premium']) -> current_path = ['total_premium']
+            - Appel 2: eval_node('raw_total', ['total_premium'])
             - Appel 3: eval_node('technical_premium', ['total_premium', 'raw_total'])
 
-            En cas d'erreur, on voit exactement le chemin: total_premium -> raw_total -> technical_premium
+            En cas d'erreur, on voit le chemin complet de dépendances.
             """
             if name in cache:
                 return cache[name]

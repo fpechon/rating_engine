@@ -1,24 +1,27 @@
 """
 Tests unitaires pour tous les types de nœuds du rating engine.
 """
+
+import operator
+from decimal import ROUND_HALF_EVEN, ROUND_HALF_UP, Decimal
+
 import pytest
-from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_EVEN
+
 from engine.nodes import (
-    Node,
+    ONE,
+    ZERO,
+    AddNode,
     ConstantNode,
+    IfNode,
     InputNode,
     LookupNode,
-    ReduceNode,
-    AddNode,
     MultiplyNode,
-    IfNode,
+    Node,
+    ReduceNode,
     RoundNode,
     to_decimal,
-    ZERO,
-    ONE,
 )
-from engine.tables import RangeTable, ExactMatchTable
-import operator
+from engine.tables import ExactMatchTable, RangeTable
 
 
 class TestToDecimal:
@@ -131,10 +134,12 @@ class TestLookupNode:
 
     def test_evaluate_with_range_table(self):
         key_node = InputNode("age")
-        table = RangeTable([
-            {"min": 18, "max": 25, "value": Decimal("1.5")},
-            {"min": 26, "max": 65, "value": Decimal("1.0")},
-        ])
+        table = RangeTable(
+            [
+                {"min": 18, "max": 25, "value": Decimal("1.5")},
+                {"min": 26, "max": 65, "value": Decimal("1.0")},
+            ]
+        )
         node = LookupNode("age_factor", table, key_node)
 
         context = {"age": 30}

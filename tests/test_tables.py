@@ -1,17 +1,15 @@
 """
 Tests unitaires pour les tables de lookup (RangeTable et ExactMatchTable).
 """
-import pytest
-from decimal import Decimal
-import tempfile
+
 import csv
+import tempfile
+from decimal import Decimal
 from pathlib import Path
-from engine.tables import (
-    RangeTable,
-    ExactMatchTable,
-    load_range_table,
-    load_exact_table,
-)
+
+import pytest
+
+from engine.tables import ExactMatchTable, RangeTable, load_exact_table, load_range_table
 
 
 class TestRangeTable:
@@ -131,7 +129,7 @@ class TestLoadRangeTable:
     """Tests pour load_range_table."""
 
     def test_load_simple_range_table(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             writer = csv.DictWriter(f, fieldnames=["min", "max", "value"])
             writer.writeheader()
             writer.writerow({"min": "18", "max": "25", "value": "1.8"})
@@ -148,7 +146,7 @@ class TestLoadRangeTable:
             Path(temp_path).unlink()
 
     def test_load_range_table_with_default(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             writer = csv.DictWriter(f, fieldnames=["min", "max", "value"])
             writer.writeheader()
             writer.writerow({"min": "0", "max": "10", "value": "1.0"})
@@ -162,7 +160,7 @@ class TestLoadRangeTable:
             Path(temp_path).unlink()
 
     def test_load_range_table_decimal_precision(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             writer = csv.DictWriter(f, fieldnames=["min", "max", "value"])
             writer.writeheader()
             writer.writerow({"min": "0", "max": "100", "value": "0.756900"})
@@ -181,7 +179,7 @@ class TestLoadExactTable:
     """Tests pour load_exact_table."""
 
     def test_load_simple_exact_table(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             writer = csv.DictWriter(f, fieldnames=["key", "value"])
             writer.writeheader()
             writer.writerow({"key": "BMW", "value": "1.2"})
@@ -197,7 +195,7 @@ class TestLoadExactTable:
             Path(temp_path).unlink()
 
     def test_load_exact_table_with_custom_columns(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             writer = csv.DictWriter(f, fieldnames=["brand", "coef"])
             writer.writeheader()
             writer.writerow({"brand": "BMW", "coef": "1.5"})
@@ -210,7 +208,7 @@ class TestLoadExactTable:
             Path(temp_path).unlink()
 
     def test_load_exact_table_with_int_key(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             writer = csv.DictWriter(f, fieldnames=["zone_id", "coef"])
             writer.writeheader()
             writer.writerow({"zone_id": "1", "coef": "0.8"})
@@ -218,14 +216,16 @@ class TestLoadExactTable:
             temp_path = f.name
 
         try:
-            table = load_exact_table(temp_path, key_column="zone_id", value_column="coef", key_type=int)
+            table = load_exact_table(
+                temp_path, key_column="zone_id", value_column="coef", key_type=int
+            )
             assert table.lookup(1) == Decimal("0.8")
             assert table.lookup("2") == Decimal("1.0")
         finally:
             Path(temp_path).unlink()
 
     def test_load_exact_table_with_default(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             writer = csv.DictWriter(f, fieldnames=["key", "value"])
             writer.writeheader()
             writer.writerow({"key": "BMW", "value": "1.2"})
@@ -240,7 +240,7 @@ class TestLoadExactTable:
             Path(temp_path).unlink()
 
     def test_load_exact_table_decimal_precision(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as f:
             writer = csv.DictWriter(f, fieldnames=["key", "value"])
             writer.writeheader()
             writer.writerow({"key": "premium", "value": "123.456789"})

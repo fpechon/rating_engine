@@ -4,10 +4,10 @@ Module de profiling pour analyser les performances du rating engine.
 Ce module permet de collecter des statistiques sur l'évaluation des nœuds
 pour identifier les goulots d'étranglement et optimiser les tarifs.
 """
+
 import time
 from collections import defaultdict
-from typing import Dict, List, Optional
-from decimal import Decimal
+from typing import Dict
 
 
 class PerformanceProfiler:
@@ -127,16 +127,18 @@ class PerformanceProfiler:
             misses = self.cache_misses.get(node_name, 0)
             total_accesses = hits + misses
 
-            nodes_stats.append({
-                "name": node_name,
-                "time_seconds": total_time,
-                "time_ms": total_time * 1000,
-                "calls": calls,
-                "avg_time_ms": (total_time / calls * 1000) if calls > 0 else 0,
-                "cache_hits": hits,
-                "cache_misses": misses,
-                "cache_hit_rate": (hits / total_accesses * 100) if total_accesses > 0 else 0,
-            })
+            nodes_stats.append(
+                {
+                    "name": node_name,
+                    "time_seconds": total_time,
+                    "time_ms": total_time * 1000,
+                    "calls": calls,
+                    "avg_time_ms": (total_time / calls * 1000) if calls > 0 else 0,
+                    "cache_hits": hits,
+                    "cache_misses": misses,
+                    "cache_hit_rate": (hits / total_accesses * 100) if total_accesses > 0 else 0,
+                }
+            )
 
         # Trier par temps décroissant
         nodes_stats.sort(key=lambda x: x["time_seconds"], reverse=True)
@@ -157,7 +159,9 @@ class PerformanceProfiler:
             "cache_hit_rate": (total_hits / total_accesses * 100) if total_accesses > 0 else 0,
             "nodes": nodes_stats,
             "slowest_node": nodes_stats[0]["name"] if nodes_stats else None,
-            "most_called_node": max(nodes_stats, key=lambda x: x["calls"])["name"] if nodes_stats else None,
+            "most_called_node": (
+                max(nodes_stats, key=lambda x: x["calls"])["name"] if nodes_stats else None
+            ),
         }
 
     def print_report(self, top_n: int = 10):
@@ -195,9 +199,11 @@ class PerformanceProfiler:
         print("-" * 80)
 
         for i, node in enumerate(stats["nodes"][:top_n], 1):
-            print(f"{i:2d}. {node['name']:30s}: {node['time_ms']:8.2f}ms "
-                  f"({node['calls']:5d} calls, {node['avg_time_ms']:6.3f}ms avg, "
-                  f"cache hit: {node['cache_hit_rate']:5.1f}%)")
+            print(
+                f"{i:2d}. {node['name']:30s}: {node['time_ms']:8.2f}ms "
+                f"({node['calls']:5d} calls, {node['avg_time_ms']:6.3f}ms avg, "
+                f"cache hit: {node['cache_hit_rate']:5.1f}%)"
+            )
 
         print("=" * 80)
 

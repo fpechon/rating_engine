@@ -1,13 +1,16 @@
 """
 Module de validation pour le rating engine.
+
 Fournit des fonctions pour valider les inputs et améliorer les messages d'erreur.
 """
+
 from decimal import Decimal
-from typing import Any, Dict, Optional, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 
 class ValidationError(Exception):
     """Exception personnalisée pour les erreurs de validation."""
+
     def __init__(self, message: str, field: Optional[str] = None, value: Any = None):
         self.field = field
         self.value = value
@@ -16,6 +19,7 @@ class ValidationError(Exception):
 
 class InputSpec:
     """Spécification pour un input attendu."""
+
     def __init__(
         self,
         name: str,
@@ -83,25 +87,20 @@ class ContextValidator:
                         value = spec.dtype(value)
                 except (ValueError, TypeError):
                     errors.append(
-                        f"Input '{name}' has invalid type: expected {spec.dtype.__name__}, got {type(value).__name__}"
+                        f"Input '{name}' has invalid type: "
+                        f"expected {spec.dtype.__name__}, got {type(value).__name__}"
                     )
                     continue
 
                 # Vérifier les ranges
                 if spec.min_value is not None and value < spec.min_value:
-                    errors.append(
-                        f"Input '{name}' value {value} is below minimum {spec.min_value}"
-                    )
+                    errors.append(f"Input '{name}' value {value} is below minimum {spec.min_value}")
                 if spec.max_value is not None and value > spec.max_value:
-                    errors.append(
-                        f"Input '{name}' value {value} exceeds maximum {spec.max_value}"
-                    )
+                    errors.append(f"Input '{name}' value {value} exceeds maximum {spec.max_value}")
 
             elif spec.dtype == str:
                 if not isinstance(value, str):
-                    errors.append(
-                        f"Input '{name}' must be a string, got {type(value).__name__}"
-                    )
+                    errors.append(f"Input '{name}' must be a string, got {type(value).__name__}")
                     continue
 
             # Vérifier les valeurs autorisées
@@ -111,9 +110,7 @@ class ContextValidator:
                 )
 
         if errors:
-            raise ValidationError(
-                "Context validation failed:\n  - " + "\n  - ".join(errors)
-            )
+            raise ValidationError("Context validation failed:\n  - " + "\n  - ".join(errors))
 
     def get_spec(self, name: str) -> Optional[InputSpec]:
         """Retourne la spécification pour un input donné."""
@@ -122,6 +119,7 @@ class ContextValidator:
 
 class EvaluationError(Exception):
     """Exception enrichie pour les erreurs d'évaluation avec contexte."""
+
     def __init__(
         self,
         message: str,
@@ -142,8 +140,12 @@ class EvaluationError(Exception):
         if node_path:
             enriched_message += f"\n  Path: {' -> '.join(node_path)}"
         if context:
-            enriched_message += f"\n  Context: {dict(list(context.items())[:5])}"  # Premiers 5 items
+            enriched_message += (
+                f"\n  Context: {dict(list(context.items())[:5])}"  # Premiers 5 items
+            )
         if original_error:
-            enriched_message += f"\n  Original error: {type(original_error).__name__}: {str(original_error)}"
+            enriched_message += (
+                f"\n  Original error: {type(original_error).__name__}: {str(original_error)}"
+            )
 
         super().__init__(enriched_message)

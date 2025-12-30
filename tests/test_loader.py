@@ -1,21 +1,24 @@
 """
 Tests unitaires pour TariffLoader et la validation/chargement des tarifs.
 """
-import pytest
+
 import tempfile
 from decimal import Decimal
 from pathlib import Path
+
+import pytest
+
 from engine.loader import TariffLoader, parse_condition
 from engine.nodes import (
-    ConstantNode,
-    InputNode,
     AddNode,
-    MultiplyNode,
-    LookupNode,
+    ConstantNode,
     IfNode,
+    InputNode,
+    LookupNode,
+    MultiplyNode,
     RoundNode,
 )
-from engine.tables import RangeTable, ExactMatchTable
+from engine.tables import ExactMatchTable, RangeTable
 
 
 class TestParseCondition:
@@ -103,7 +106,9 @@ class TestTariffLoaderValidation:
     def test_validate_multiply_missing_inputs_raises_error(self):
         loader = TariffLoader()
         data = {"nodes": {"product": {"type": "MULTIPLY"}}}
-        with pytest.raises(ValueError, match="MULTIPLY node 'product' must have non-empty 'inputs' list"):
+        with pytest.raises(
+            ValueError, match="MULTIPLY node 'product' must have non-empty 'inputs' list"
+        ):
             loader.validate(data)
 
     def test_validate_lookup_missing_table_raises_error(self):
@@ -120,7 +125,9 @@ class TestTariffLoaderValidation:
                 "lookup": {"type": "LOOKUP", "table": "unknown_table", "key_node": "age"},
             }
         }
-        with pytest.raises(ValueError, match="LOOKUP node 'lookup' references unknown table 'unknown_table'"):
+        with pytest.raises(
+            ValueError, match="LOOKUP node 'lookup' references unknown table 'unknown_table'"
+        ):
             loader.validate(data)
 
     def test_validate_lookup_missing_key_node_raises_error(self):
@@ -136,7 +143,9 @@ class TestTariffLoaderValidation:
                 "lookup": {"type": "LOOKUP", "table": "age_table", "key_node": "unknown_node"},
             }
         }
-        with pytest.raises(ValueError, match="LOOKUP node 'lookup' references unknown key_node 'unknown_node'"):
+        with pytest.raises(
+            ValueError, match="LOOKUP node 'lookup' references unknown key_node 'unknown_node'"
+        ):
             loader.validate(data)
 
     def test_validate_if_missing_condition_raises_error(self):
@@ -181,7 +190,9 @@ class TestTariffLoaderValidation:
                 "rounded": {"type": "ROUND", "input": "value", "mode": "INVALID_MODE"},
             }
         }
-        with pytest.raises(ValueError, match="ROUND node 'rounded' has invalid mode 'INVALID_MODE'"):
+        with pytest.raises(
+            ValueError, match="ROUND node 'rounded' has invalid mode 'INVALID_MODE'"
+        ):
             loader.validate(data)
 
     def test_validate_input_with_extra_fields_raises_error(self):
@@ -220,7 +231,7 @@ nodes:
     type: CONSTANT
     value: 500
 """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -239,7 +250,7 @@ nodes:
   driver_age:
     type: INPUT
 """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -259,7 +270,7 @@ nodes:
     type: INPUT
     dtype: str
 """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -279,7 +290,7 @@ nodes:
     type: INPUT
     dtype: invalid
 """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -303,7 +314,7 @@ nodes:
     type: ADD
     inputs: [a, b]
 """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -329,7 +340,7 @@ nodes:
     type: MULTIPLY
     inputs: [base, factor]
 """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -353,7 +364,7 @@ nodes:
     key_node: age
 """
         table = RangeTable([{"min": 18, "max": 99, "value": Decimal("1.0")}])
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -377,7 +388,7 @@ nodes:
     then: 1.2
     else: 1.0
 """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -404,7 +415,7 @@ nodes:
     decimals: 2
     mode: HALF_UP
 """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -427,7 +438,7 @@ nodes:
     type: ROUND
     input: value
 """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -482,7 +493,7 @@ nodes:
         age_table = RangeTable([{"min": 18, "max": 99, "value": Decimal("1.0")}])
         brand_table = ExactMatchTable({"BMW": Decimal("1.2")})
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as f:
             f.write(yaml_content)
             temp_path = f.name
 
@@ -492,11 +503,22 @@ nodes:
 
             # Verify all nodes were created
             assert len(nodes) == 11
-            assert all(name in nodes for name in [
-                "driver_age", "brand", "density", "base_premium", "fee",
-                "age_factor", "brand_factor", "density_factor",
-                "technical_premium", "raw_total", "total_premium"
-            ])
+            assert all(
+                name in nodes
+                for name in [
+                    "driver_age",
+                    "brand",
+                    "density",
+                    "base_premium",
+                    "fee",
+                    "age_factor",
+                    "brand_factor",
+                    "density_factor",
+                    "technical_premium",
+                    "raw_total",
+                    "total_premium",
+                ]
+            )
 
             # Verify node types
             assert isinstance(nodes["driver_age"], InputNode)

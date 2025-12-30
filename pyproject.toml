@@ -23,6 +23,14 @@ exclude = ["tests*", "sandbox*", "tariffs*", "docs*"]
 dev = [
     "ipykernel>=7.1.0",
     "pytest-cov>=6.0.0",
+    "black>=24.1.0",
+    "isort>=5.13.0",
+    "flake8>=7.0.0",
+    "flake8-docstrings>=1.7.0",
+    "flake8-bugbear>=24.1.0",
+    "mypy>=1.8.0",
+    "types-PyYAML>=6.0.0",
+    "pre-commit>=3.6.0",
 ]
 
 [tool.pytest.ini_options]
@@ -49,3 +57,36 @@ omit = [
 precision = 2
 show_missing = true
 skip_covered = false
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+files = ["engine", "tools"]

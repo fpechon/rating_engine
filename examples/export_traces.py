@@ -6,17 +6,19 @@ Ce script montre comment:
 - Exporter une trace d'évaluation en JSON/CSV
 - Exporter des résultats de batch pricing
 """
+
 from pathlib import Path
-from engine.loader import TariffLoader
-from engine.tables import load_range_table, load_exact_table
+
 from engine.graph import TariffGraph
+from engine.loader import TariffLoader
 from engine.metadata import (
     TariffMetadata,
-    export_trace_to_json,
-    export_trace_to_csv,
     export_batch_results,
+    export_trace_to_csv,
+    export_trace_to_json,
     load_metadata_from_file,
 )
+from engine.tables import load_exact_table, load_range_table
 
 
 def example_trace_export():
@@ -26,8 +28,9 @@ def example_trace_export():
     print("=" * 80)
 
     # Créer un tarif simple
-    from engine.nodes import ConstantNode, InputNode, MultiplyNode, AddNode
     from decimal import Decimal
+
+    from engine.nodes import AddNode, ConstantNode, InputNode, MultiplyNode
 
     base = ConstantNode("base_premium", Decimal("500"))
     age = InputNode("driver_age")
@@ -63,27 +66,19 @@ def example_trace_export():
         currency="EUR",
         effective_date="2025-01-01",
         author="Example Author",
-        description="Simple example tariff for demonstration"
+        description="Simple example tariff for demonstration",
     )
 
     # Export JSON
     print("\n📄 Export JSON...")
     export_trace_to_json(
-        trace,
-        "trace_example.json",
-        metadata=metadata,
-        context=context,
-        pretty=True
+        trace, "trace_example.json", metadata=metadata, context=context, pretty=True
     )
     print("✓ Exporté: trace_example.json")
 
     # Export CSV
     print("\n📊 Export CSV...")
-    export_trace_to_csv(
-        trace,
-        "trace_example.csv",
-        context=context
-    )
+    export_trace_to_csv(trace, "trace_example.csv", context=context)
     print("✓ Exporté: trace_example.csv")
 
 
@@ -94,8 +89,9 @@ def example_batch_export():
     print("=" * 80)
 
     # Créer un tarif simple
-    from engine.nodes import ConstantNode, InputNode, MultiplyNode
     from decimal import Decimal
+
+    from engine.nodes import ConstantNode, InputNode, MultiplyNode
 
     base = ConstantNode("base", Decimal("100"))
     factor_input = InputNode("factor")
@@ -125,11 +121,7 @@ def example_batch_export():
 
     # Export
     print("\n📊 Export des résultats...")
-    export_batch_results(
-        results,
-        contexts,
-        "batch_results.csv"
-    )
+    export_batch_results(results, contexts, "batch_results.csv")
     print("✓ Exporté: batch_results.csv")
 
 
@@ -140,8 +132,9 @@ def example_batch_with_errors():
     print("=" * 80)
 
     # Créer un tarif simple
-    from engine.nodes import ConstantNode, InputNode, MultiplyNode
     from decimal import Decimal
+
+    from engine.nodes import ConstantNode, InputNode, MultiplyNode
 
     base = ConstantNode("base", Decimal("100"))
     factor_input = InputNode("factor")
@@ -158,9 +151,9 @@ def example_batch_with_errors():
     # Contextes avec des erreurs volontaires (input manquant)
     contexts = [
         {"factor": 1.0},  # OK
-        {},               # Erreur: factor manquant
+        {},  # Erreur: factor manquant
         {"factor": 1.5},  # OK
-        {},               # Erreur: factor manquant
+        {},  # Erreur: factor manquant
         {"factor": 2.0},  # OK
     ]
 
@@ -175,12 +168,7 @@ def example_batch_with_errors():
 
     # Export
     print("\n📊 Export avec colonne d'erreurs...")
-    export_batch_results(
-        results,
-        contexts,
-        "batch_with_errors.csv",
-        errors=errors
-    )
+    export_batch_results(results, contexts, "batch_with_errors.csv", errors=errors)
     print("✓ Exporté: batch_with_errors.csv")
 
     # Afficher les lignes en erreur
@@ -246,4 +234,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Erreur: {e}")
         import traceback
+
         traceback.print_exc()
